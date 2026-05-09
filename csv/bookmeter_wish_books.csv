@@ -1,4 +1,5 @@
 bookmeter_url,isbn_or_asin,book_title,author,publisher,published_date,exist_in_sophia,exist_in_utokyo,sophia_opac,utokyo_opac,sophia_mathlib_opac
+https://bookmeter.com/books/19150136,4771035660,ライブハウスの人類学 : 音楽を介して「生きられる場」を築くこと,"生井,達也,1984-",晃洋書房,202201,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BC12253511,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BC12253511,
 https://bookmeter.com/books/22588160,4065394309,内務省 : 近代日本に君臨した巨大官庁 2772 (講談社現代新書),内務省研究会,講談社,202504,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD11471150,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD11471150,
 https://bookmeter.com/books/23326439,4767835755,建築トリック謎解きガイド,,エクスナレッジ,,No,No,,,
 https://bookmeter.com/books/22279359,4863114281,深遠なるインド料理の世界 (わたしの旅ブックス ； 58),小林真樹,産業編集センター,,No,No,,,
@@ -1381,7 +1382,7 @@ https://bookmeter.com/books/9045042,4758014221,高橋晃東映アニメーショ
 https://bookmeter.com/books/11036012,4758015155,香川久東映アニメーションプリキュアワークス = KAGAWA HISASHI TOEI ANIMATION PRECURE WORKS,"香川,久,1963-",一迅社,201608,No,No,,,
 https://bookmeter.com/books/13751186,4758016364,宮本絵美子東映アニメーションプリキュアワークス,"宮本, 絵美子,宮本絵美子 画,東映アニメーション株式会社 監修","一迅社,講談社 (発売)","Thu, 11 Jul 2019 20:18:36 +0900",No,No,,,
 https://bookmeter.com/books/13683524,4163910174,世にも危険な医療の世界史,"Kang,Lydia Pedersen,Nate 福井,久美子",文藝春秋,201904,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB28150747,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB28150747,
-https://bookmeter.com/books/13025069,4815006555,Not_found_in_ISBNdb,Not_found_in_ISBNdb,Not_found_in_ISBNdb,Not_found_in_ISBNdb,No,No,,,
+https://bookmeter.com/books/13025069,4815006555,Not_found_in_GoogleBooks,Not_found_in_GoogleBooks,Not_found_in_GoogleBooks,Not_found_in_GoogleBooks,No,No,,,
 https://bookmeter.com/books/12527147,4582513352,10万個の子宮 : あの激しいけいれんは子宮頸がんワクチンの副反応なのか,"村中,璃子",平凡社,201802,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB25525763,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB25525763,
 https://bookmeter.com/books/7689317,433605777X,定本何かが空を飛んでいる,"稲生,平太郎,1954-",国書刊行会,201311,No,No,,,
 https://bookmeter.com/books/12180362,4861826500,夢と幽霊の書,アンドルー・ラング／著 ないとうふみこ／翻訳 吉田篤弘／解説,作品社,20170821,Yes,No,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB24258231,,

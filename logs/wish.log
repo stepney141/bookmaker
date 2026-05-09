@@ -4,7 +4,7 @@
 
 Execution plan => mode=full, target=wish, forceRefresh=false, scrape=remote(login=true), phases=compare -> fetchBiblio -> crawlDescriptions -> persist -> exportCsv -> uploadDb
 Loading previous book list from SQLite database (table: wish)
-Loaded 1791 cached books from SQLite.
+Loaded 1799 cached books from SQLite.
 Login Completed!
 Scraping Started!
 scanning page 1
@@ -86,43 +86,21 @@ Fetching bibliographic information
 Completed fetching the list of ja books in Sophia Univ. Math Lib
 Completed fetching the list of ja books in Sophia Univ. Math Lib
 Completed creating a list of ISBNs of ja books in Sophia Univ. Math Lib
-GoogleBooks でエラーが発生しました (ISBN: 4815006555): HTTP error from GoogleBooks (HTTP status code: 503) (原因: Request failed with status code 503)
 Searching Completed
 Crawling Kinokuniya for book descriptions
-Loaded 1323 existing descriptions from database.
-Extracted description length: 386 characters
-Successfully fetched description for ISBN 4065394309.
-No book found with isbn_or_asin: 4065394309
-Extracted description length: 5 characters
-Successfully fetched description for ISBN 4767835755.
-No book found with isbn_or_asin: 4767835755
-Extracted description length: 364 characters
-Successfully fetched description for ISBN 4863114281.
-No book found with isbn_or_asin: 4863114281
-Extracted description length: 223 characters
-Successfully fetched description for ISBN 4334039723.
-No book found with isbn_or_asin: 4334039723
-Extracted description length: 1756 characters
-Successfully fetched description for ISBN 4860116070.
-No book found with isbn_or_asin: 4860116070
-Extracted description length: 371 characters
-Successfully fetched description for ISBN 4480063153.
-No book found with isbn_or_asin: 4480063153
-Extracted description length: 343 characters
-Successfully fetched description for ISBN 4087465977.
-No book found with isbn_or_asin: 4087465977
-Extracted description length: 645 characters
-Successfully fetched description for ISBN 4798186627.
-No book found with isbn_or_asin: 4798186627
+Loaded 1331 existing descriptions from database.
+Extracted description length: 503 characters
+Successfully fetched description for ISBN 4771035660.
+No book found with isbn_or_asin: 4771035660
 Saving data to SQLite database
 Synchronizing book list with database table: wish
-Re-inserting 1439 books into wish in remote order...
+Re-inserting 1440 books into wish in remote order...
 Synchronization complete for wish.
 Generating CSV from SQLite database
 Exporting columns [bookmeter_url, isbn_or_asin, book_title, author, publisher, published_date, exist_in_sophia, exist_in_utokyo, sophia_opac, utokyo_opac, sophia_mathlib_opac] from table wish to CSV file ./csv/bookmeter_wish_books.csv
-Fetched 1439 rows from wish.
-Successfully exported 1439 books to ./csv/bookmeter_wish_books.csv
+Fetched 1440 rows from wish.
+Successfully exported 1440 books to ./csv/bookmeter_wish_books.csv
 Finished writing ./csv/bookmeter_wish_books.csv
 Uploading SQLite database to Firebase Storage...
 Database uploaded successfully to bookmeter/books.sqlite
-The processs took 339 seconds
+The processs took 316 seconds
