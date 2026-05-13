@@ -48,7 +48,7 @@
     "exec": "tsx",
     "stacked": "tsx src/index.ts full stacked",
     "test": "vitest run",
-    "wish": "tsx src/index.ts full wish && bash ./is_in_my_lib.sh",
+    "wish": "tsx src/index.ts full wish",
     "test:watch": "vitest"
   },
   "volta": {

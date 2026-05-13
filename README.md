@@ -34,6 +34,8 @@ tsx bookmeter/src/index.ts full wish --force
 tsx bookmeter/src/index.ts full wish --user-id 42
 ```
 
+セキュリティのため `ignore-script=true` を有効にしている環境では、`npm i` の実行後、 ` npm rebuild better-sqlite3 --ignore-scripts=false --foreground-scripts` を実行する必要がある。
+
 ### 実行モード
 
 | モード | 説明 |

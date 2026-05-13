@@ -7,6 +7,7 @@ import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 // - https://github.com/mozilla/pdf.js/issues/18006
 
 import type { AxiosError } from "axios";
+import type { UnparseObject } from "papaparse";
 
 export const handleAxiosError = (error: AxiosError<unknown>): void => {
   if (error.response) {
@@ -130,19 +131,19 @@ export async function* extractTextFromPDF(pdfData: Uint8Array): AsyncGenerator<s
 }
 
 // 出力時：必ずarrayから変換してjsonかcsvに出力する
-export type FileExportIO<T = unknown[]> = {
+export type FileExportIO<T = unknown> = {
   payload: T;
   fileName: string;
   targetType: "json" | "csv";
   mode: "append" | "overwrite";
 };
 
-export const exportFile = async (IO: FileExportIO): Promise<void> => {
+export const exportFile = async <T = unknown>(IO: FileExportIO<T>): Promise<void> => {
   const raw = IO.payload;
   let output: string = "";
 
   if (IO.targetType === "csv") {
-    output = unparse(raw);
+    output = unparse(raw as unknown[] | UnparseObject<unknown>);
   } else if (IO.targetType === "json") {
     output = JSON.stringify(raw, null, "  ");
   }

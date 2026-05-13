@@ -13,6 +13,7 @@ import {
   collectLatestBookList,
   crawlDescriptionPhase,
   exportCsvPhase,
+  exportLibraryCsvReportsPhase,
   fetchBiblioPhase,
   loadCachedBookIndex,
   loadPreviousSnapshot,
@@ -80,6 +81,7 @@ export async function main(option: MainFuncOption): Promise<boolean> {
     );
 
     if (!shouldRunDownstreamPhases(executionPlan, prevBookList, latestBookList)) {
+      await exportLibraryCsvReportsPhase(executionPlan, prevBookList ?? latestBookList);
       console.log(`The processs took ${Math.round((Date.now() - startTime) / 1000)} seconds`);
       return true;
     }
@@ -95,6 +97,7 @@ export async function main(option: MainFuncOption): Promise<boolean> {
 
     const hasPersisted = persistPhase(executionPlan, enrichedBookList, repo);
     await exportCsvPhase(executionPlan, csvPath, enrichedBookList, repo, hasPersisted);
+    await exportLibraryCsvReportsPhase(executionPlan, enrichedBookList);
     await uploadPhase(executionPlan, uploader, DB_FILE, hasPersisted);
 
     console.log(`The processs took ${Math.round((Date.now() - startTime) / 1000)} seconds`);

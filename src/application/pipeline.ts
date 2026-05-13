@@ -15,6 +15,8 @@ import {
   fetchKinokuniyaDescription
 } from "../scrapers/kinokuniya";
 
+import { exportLibraryCsvReports } from "./libraryCsvReports";
+
 import type { ExecutionPlan } from "./executionMode";
 import type { BookRepository } from "../db/bookRepository";
 import type { RemoteUploader } from "../db/remoteUploader";
@@ -301,6 +303,22 @@ export async function exportCsvPhase(
   } catch (csvError) {
     console.error("Error in fallback CSV export:", csvError);
   }
+}
+
+// wish の所蔵分類CSVを生成する。
+export async function exportLibraryCsvReportsPhase(plan: ExecutionPlan, latestBookList: BookList): Promise<void> {
+  if (plan.target !== "wish") {
+    console.log("Skipping library CSV reports for non-wish target.");
+    return;
+  }
+
+  if (plan.phases.exportCsv !== true) {
+    console.log("Skipping library CSV reports because CSV export is disabled.");
+    return;
+  }
+
+  console.log("Generating library CSV reports for wish list");
+  await exportLibraryCsvReports(latestBookList);
 }
 
 // 保存済みのSQLiteファイルをリモートへアップロードする。
