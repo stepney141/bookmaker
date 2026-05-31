@@ -4,7 +4,7 @@
 
 Execution plan => mode=full, target=wish, forceRefresh=false, scrape=remote(login=true), phases=compare -> fetchBiblio -> crawlDescriptions -> persist -> exportCsv -> uploadDb
 Loading previous book list from SQLite database (table: wish)
-Loaded 1797 cached books from SQLite.
+Loaded 1820 cached books from SQLite.
 Login Completed!
 Scraping Started!
 scanning page 1
@@ -80,33 +80,9 @@ scanning page 70
 scanning page 71
 scanning page 72
 scanning page 73
+scanning page 74
 Bookmeter Scraping Completed!
-Detected some diffs between the local and remote.
-Fetching bibliographic information
-Completed fetching the list of ja books in Sophia Univ. Math Lib
-Completed fetching the list of ja books in Sophia Univ. Math Lib
-Completed creating a list of ISBNs of ja books in Sophia Univ. Math Lib
-Searching Completed
-Crawling Kinokuniya for book descriptions
-Loaded 1328 existing descriptions from database.
-Extracted description length: 471 characters
-Successfully fetched description for ISBN 4909658580.
-No book found with isbn_or_asin: 4909658580
-Extracted description length: 819 characters
-Successfully fetched description for ISBN 4798158461.
-No book found with isbn_or_asin: 4798158461
-Extracted description length: 323 characters
-Successfully fetched description for ISBN 4297112655.
-No book found with isbn_or_asin: 4297112655
-Saving data to SQLite database
-Synchronizing book list with database table: wish
-Re-inserting 1439 books into wish in remote order...
-Synchronization complete for wish.
-Generating CSV from SQLite database
-Exporting columns [bookmeter_url, isbn_or_asin, book_title, author, publisher, published_date, exist_in_sophia, exist_in_utokyo, sophia_opac, utokyo_opac, sophia_mathlib_opac] from table wish to CSV file ./csv/bookmeter_wish_books.csv
-Fetched 1439 rows from wish.
-Successfully exported 1439 books to ./csv/bookmeter_wish_books.csv
-Finished writing ./csv/bookmeter_wish_books.csv
+Cannot find any differences between the local and remote. The process will be aborted...
 Generating library CSV reports for wish list
 Finished writing ./csv/not_in_Sophia.csv
 Finished writing ./csv/in_Sophia.csv
@@ -115,6 +91,4 @@ Finished writing ./csv/in_UTokyo.csv
 Finished writing ./csv/in_Sophia_but_not_in_UTokyo.csv
 Finished writing ./csv/in_UTokyo_but_not_in_Sophia.csv
 Finished writing ./csv/not_in_Sophia_and_UTokyo.csv
-Uploading SQLite database to Firebase Storage...
-Database uploaded successfully to bookmeter/books.sqlite
-The processs took 314 seconds
+The processs took 242 seconds

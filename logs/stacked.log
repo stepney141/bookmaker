@@ -4,7 +4,7 @@
 
 Execution plan => mode=full, target=stacked, forceRefresh=false, scrape=remote(login=true), phases=compare -> fetchBiblio -> crawlDescriptions -> persist -> exportCsv -> uploadDb
 Loading previous book list from SQLite database (table: stacked)
-Loaded 1800 cached books from SQLite.
+Loaded 1820 cached books from SQLite.
 Login Completed!
 Scraping Started!
 scanning page 1
@@ -28,4 +28,4 @@ scanning page 18
 scanning page 19
 Cannot find any differences between the local and remote. The process will be aborted...
 Skipping library CSV reports for non-wish target.
-The processs took 36 seconds
+The processs took 39 seconds
