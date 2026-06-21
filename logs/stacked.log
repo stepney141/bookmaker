@@ -4,7 +4,7 @@
 
 Execution plan => mode=full, target=stacked, forceRefresh=false, scrape=remote(login=true), phases=compare -> fetchBiblio -> crawlDescriptions -> persist -> exportCsv -> uploadDb
 Loading previous book list from SQLite database (table: stacked)
-Loaded 1822 cached books from SQLite.
+Loaded 1823 cached books from SQLite.
 Login Completed!
 Scraping Started!
 scanning page 1
@@ -26,24 +26,6 @@ scanning page 16
 scanning page 17
 scanning page 18
 scanning page 19
-Detected some diffs between the local and remote.
-Fetching bibliographic information
-Completed fetching the list of ja books in Sophia Univ. Math Lib
-Completed fetching the list of ja books in Sophia Univ. Math Lib
-Completed creating a list of ISBNs of ja books in Sophia Univ. Math Lib
-Searching Completed
-Crawling Kinokuniya for book descriptions
-Loaded 315 existing descriptions from database.
-Saving data to SQLite database
-Synchronizing book list with database table: stacked
-Re-inserting 364 books into stacked in remote order...
-Synchronization complete for stacked.
-Generating CSV from SQLite database
-Exporting columns [bookmeter_url, isbn_or_asin, book_title, author, publisher, published_date] from table stacked to CSV file ./csv/bookmeter_stacked_books.csv
-Fetched 364 rows from stacked.
-Successfully exported 364 books to ./csv/bookmeter_stacked_books.csv
-Finished writing ./csv/bookmeter_stacked_books.csv
+Cannot find any differences between the local and remote. The process will be aborted...
 Skipping library CSV reports for non-wish target.
-Uploading SQLite database to Firebase Storage...
-Database uploaded successfully to bookmeter/books.sqlite
-The processs took 61 seconds
+The processs took 41 seconds
