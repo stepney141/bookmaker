@@ -10,7 +10,7 @@ import { parse } from "papaparse";
 
 import { DEFAULT_BOOKMETER_USER_ID } from "../application/executionMode";
 
-import { DEFAULT_CSV_FILENAME } from "./constants";
+import { DB_PATH, DEFAULT_CSV_FILENAME } from "./constants";
 
 import type { BookRepository } from "./bookRepository";
 import type { Book, BookList } from "../domain/book";
@@ -64,7 +64,7 @@ export const getPrevBookList = async (filename: string, repo: BookRepository): P
       return getPrevBookListFromCsv(filename);
     }
 
-    if (fsSync.existsSync("./books.sqlite")) {
+    if (fsSync.existsSync(DB_PATH)) {
       console.log(`Loading previous book list from SQLite database (table: ${tableName})`);
       const loadResult = repo.load(tableName);
       if (loadResult.ok) {

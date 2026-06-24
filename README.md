@@ -1,157 +1,100 @@
-# Bookmeter
+# bookmaker
 
-[読書メーター](https://bookmeter.com/)の読みたい本リスト・積読リストをスクレイピングし、複数の書誌情報APIで補強したうえでSQLiteデータベースとCSVに出力するCLIツール。
+複数プロジェクトを束ねるモノレポ。TypeScript は **pnpm workspaces**、Python は **uv workspace** で管理し、生成物である SQLite データベース（`data/books.sqlite`）を各プロジェクトが共有する。
 
-## 主な機能
+## アプリ一覧
 
-1. **スクレイピング** — Puppeteerで読書メーターにログインし、読みたい本/積読リストからISBN/ASINを抽出
-2. **書誌情報の補強** — OpenBD一括検索をベースに、NDL（国立国会図書館）・ISBNdb・Google Booksへのフォールバックチェーンで書誌データを取得
-3. **図書館所蔵検索** — CiNii Booksで上智大学・東京大学の所蔵状況とOPACリンクを取得。数学図書室の蔵書リストとも照合
-4. **書籍説明文の取得** — 紀伊國屋書店Webサイトから書籍の説明文をクロール
-5. **永続化** — SQLite（better-sqlite3 + Drizzle ORM）に保存
-6. **CSV出力** — wishリストはOPACリンク・所蔵フラグ付き、stackedリストは基本情報のみ
-7. **リモートアップロード** — Firebase StorageへSQLiteファイルをバックアップ
+| パッケージ | 場所 | 説明 |
+|---|---|---|
+| `@bookmaker/bookmeter` | [`apps/bookmeter`](apps/bookmeter/README.md) | 読書メーターの読みたい本・積読リストをスクレイピングし、書誌情報・図書館所蔵で補強して `data/books.sqlite` と CSV に出力する CLI（共有 SQLite の**生成元**） |
 
-## 使い方
+## ワークスペース構成
+
+```
+bookmaker/
+├── pnpm-workspace.yaml      # packages: ["apps/*", "packages/*"]
+├── package.json             # private なルート（横断スクリプト・共有 devDeps）
+├── tsconfig.base.json       # 共通の compilerOptions
+├── eslint.config.mjs        # 共通の ESLint 設定（リポジトリ全体に適用）
+├── pyproject.toml           # uv workspace ルート（[tool.uv.workspace]）
+├── data/
+│   └── books.sqlite         # 共有 SQLite（bookmeter が生成・更新）
+├── apps/                    # 実行可能なアプリケーション
+│   └── bookmeter/           # @bookmaker/bookmeter（README は各ディレクトリ参照）
+└── packages/                # 複数アプリで共有するライブラリ（任意）
+```
+
+## セットアップ
 
 ```bash
-# フルパイプライン（スクレイピング → 書誌情報取得 → 説明文取得 → DB保存 → CSV出力 → アップロード）
-tsx bookmeter/src/index.ts full wish
-
-# スクレイピングのみ
-tsx bookmeter/src/index.ts scrape-only stacked --no-login
-
-# ローカルキャッシュから下流フェーズのみ実行（DB保存 → CSV出力 → アップロード）
-tsx bookmeter/src/index.ts local-downstream wish
-
-# ローカルキャッシュから API 補強を再実行（API取得 → DB保存 → CSV出力 → アップロード）
-tsx bookmeter/src/index.ts local-biblio wish
-
-# キャッシュを無視して書誌・所蔵・説明文を強制更新
-tsx bookmeter/src/index.ts full wish --force
-
-# ユーザーIDを指定して実行
-tsx bookmeter/src/index.ts full wish --user-id 42
+pnpm install   # TypeScript ワークスペースの依存を解決（ルートで実行）
+uv sync        # Python ワークスペースの依存を解決（Python プロジェクト追加時）
 ```
 
-セキュリティのため `ignore-script=true` を有効にしている環境では、`npm i` の実行後、 ` npm rebuild better-sqlite3 --ignore-scripts=false --foreground-scripts` を実行する必要がある。
+- ネイティブモジュール（`better-sqlite3`）や `puppeteer` の postinstall ビルドは、pnpm がデフォルトでブロックするため `pnpm-workspace.yaml` の `allowBuilds` で許可している。新しいネイティブ依存を追加した際は同所に追記する。
+- API キー等の認証情報は、モノレポルートの `.env` に設定する（各アプリの README を参照）。
 
-### 実行モード
+### 横断スクリプト（ルート）
 
-| モード | 説明 |
-|--------|------|
-| `full` | スクレイピングから全フェーズを実行 |
-| `scrape-only` | スクレイピングのみ実行し、下流フェーズをスキップ |
-| `local-downstream` | スクレイピングをスキップし、ローカルキャッシュからDB保存・CSV出力・アップロードを実行 |
-| `local-biblio` | Bookmeter/紀伊國屋のスクレイピングをスキップし、ローカルキャッシュからAPI取得・DB保存・CSV出力・アップロードを実行 |
+| コマンド | 内容 |
+|---|---|
+| `pnpm -r type-check` | 全ワークスペースの型チェック |
+| `pnpm lint` | ルートの共有 ESLint 設定（`eslint.config.mjs`）でリポジトリ全体を lint |
+| `pnpm -r test` | 全ワークスペースのテスト |
+| `pnpm format` | Prettier でリポジトリ全体を整形 |
 
-`--force` を付けると、既存の SQLite キャッシュを使わずに書誌情報、CiNii 所蔵情報、紀伊國屋の説明文を再取得する。通常実行では、既知の書籍に対する再取得を避ける。
+各アプリ固有の使い方は、それぞれの README を参照（例: [`apps/bookmeter`](apps/bookmeter/README.md)）。
 
-#### 各モードの有効フェーズ
+## モノレポへのプロジェクト追加
 
-| フェーズ | `full` | `scrape-only` | `local-downstream` | `local-biblio` |
-|---|:---:|:---:|:---:|:---:|
-| scrape（データ取得元） | remote | remote | local-cache | local-cache |
-| compare | o | - | - | - |
-| fetchBiblio | o | - | - | o |
-| crawlDescriptions | o | - | - | - |
-| persist | o | - | o | o |
-| exportCsv | o | - | o | o |
-| uploadDb | o | - | o | o |
+TypeScript は **pnpm workspaces**、Python は **uv workspace** で管理し、生成物である SQLite（`data/books.sqlite`）を各プロジェクトが共有する。
 
-#### `--force` の有無によるキャッシュ挙動
+### 共有 SQLite の扱い
 
-| フェーズ | `--force` なし | `--force` あり |
-|---|---|---|
-| **compare** | 前回スナップショットと比較し、差分がなければ後続フェーズをスキップ | 比較結果に関係なく後続フェーズを常に実行 |
-| **fetchBiblio — 書誌情報** | `book_title`, `author`, `publisher`, `published_date` の4項目がすべて有効値ならスキップ（空文字・`Not_found_in_*`・`*_API_Error`・`INVALID_ISBN` は欠損扱い） | 全書籍を無条件で再取得 |
-| **fetchBiblio — 所蔵検索** | `cachedBookUrls`（DB上の wish+stacked を結合した URL セット）に含まれていればスキップ | 全書籍を無条件で再検索 |
-| **crawlDescriptions** | DBに既存の説明文があれば再利用し、新規書籍のみ紀伊國屋から取得 | 既存の説明文があっても再取得 |
-| **persist / exportCsv / uploadDb** | キャッシュ判定なし（常に実行） | 同左 |
+- **生成元（writer）は `bookmeter` のみ**。他プロジェクトは **read-only** で開き、生成物を破壊しない。
+  - TypeScript: `new Database(dbPath, { readonly: true, fileMustExist: true })`
+  - Python: `sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)`
+- DB は WAL モードで運用しているため、「1 writer + 複数 reader」の同時アクセスは安全。
+- パスはワークスペースルートからの相対（`data/books.sqlite`）で解決する。決め打ちせず、環境変数 `BOOKS_DB_PATH` で上書き可能にしておくとよい。
 
-#### `--force` を使う基準
+### 新しい TypeScript プロジェクトを追加する
 
-URL 列の追加・削除・並び替えを検知するだけなら、通常は `--force` を使わない。`full` は毎回 Bookmeter の一覧をスクレイピングし、前回スナップショットと現在の `bookmeter_url` の集合および順序を比較するため、キャッシュを長期間使っていても URL 列の差分は検知できる。ただし、同じ URL 列に戻った途中経過や、同じ `bookmeter_url` のまま変わった書誌情報・所蔵情報・説明文は、URL 列の差分としては扱わない。この区別を前提に、`--force` は URL 列ではなく下流データを再取得したい時に使う。
+1. `apps/<name>/` を作成し、`package.json` を置く（`name` は `@bookmaker/<name>`、`private: true`）。
+2. `tsconfig.json` で共通設定を継承する:
+   ```jsonc
+   { "extends": "../../tsconfig.base.json", "compilerOptions": { "outDir": "dist" } }
+   ```
+3. ルートで `pnpm install` を実行し、ワークスペースに認識させる。依存追加は `pnpm --filter @bookmaker/<name> add <pkg>`。
+4. 他プロジェクトのパッケージを使う場合は `dependencies` に `"@bookmaker/<pkg>": "workspace:*"` を追加する。
+5. SQLite を読むなら上記の **read-only** 接続で `data/books.sqlite` を開く。
 
-`--force` を使う主な場面は、既存書籍の書誌情報を API から取り直したい時、CiNii 所蔵情報を再検索したい時、紀伊國屋の説明文を既存書籍も含めて更新したい時、またはキャッシュ済みデータに誤りがあると分かっている時である。通常の追加・削除・並び替えに対しては `full` の通常実行で足りる。Bookmeter を再スクレイピングせずにローカルスナップショットの書誌・所蔵だけを再取得したい場合は、`local-biblio --force` を使う。次に、モードごとの具体的な挙動をまとめる。
+> ESLint / Prettier はルートで共有している（`eslint.config.mjs` / `.prettierrc.json`）。新しいパッケージ配下の TS ファイルもルートの `pnpm lint` / `pnpm format` で自動的に対象になるため、アプリ側に lint 設定を置く必要はない。
 
-#### モード別まとめ
+### 新しい Python プロジェクトを追加する
 
-| モード | `--force` なし | `--force` あり |
-|---|---|---|
-| **full** | remote スクレイプ → 差分なしなら停止。差分ありなら未取得分のみAPI・所蔵検索、新規書籍のみ説明文取得 → 保存・出力 | remote スクレイプ → 比較を無視して全書籍の書誌・所蔵・説明文を再取得 → 保存・出力 |
-| **scrape-only** | remote スクレイプのみ。後続フェーズなし | 同左（`--force` の効果なし） |
-| **local-downstream** | 前回スナップショットをそのまま保存・CSV出力・アップロード | 同左（`--force` の効果なし） |
-| **local-biblio** | 前回スナップショットに対し、未取得分のみ書誌・所蔵検索 → 保存・CSV出力・アップロード | 前回スナップショットに対し、全書籍の書誌・所蔵を再取得 → 保存・CSV出力・アップロード |
+1. `apps/<name>/` に `pyproject.toml` を置く（`[project]` に `name` / `dependencies` を定義）。
+2. ルートの `pyproject.toml` の `[tool.uv.workspace] members` が `apps/*` を含むことを確認する。
+3. ルートで `uv sync` を実行する（仮想環境はルートの `.venv` に集約される）。依存追加は `uv add --package <name> <pkg>`。
+4. 実行は `uv run --package <name> <cmd>`。SQLite は上記の **read-only** 接続で開く。
 
-### ターゲット
+### TypeScript と Python が混在するプロジェクト
 
-| ターゲット | 説明 |
-|------------|------|
-| `wish` | 読みたい本リスト |
-| `stacked` | 積読リスト |
-
-## プロジェクト構成
+同一の `apps/<name>/` 配下に両方のマニフェストを置き、ソースをサブディレクトリで分ける:
 
 ```
-bookmeter/
-├── src/
-│   ├── index.ts                # エントリポイント・DIオーケストレーション
-│   ├── application/            # アプリケーション層（CLI解析・パイプライン制御）
-│   │   ├── executionMode.ts    # CLI引数の解析と実行計画の解決
-│   │   └── pipeline.ts         # パイプラインフェーズのオーケストレーション
-│   ├── domain/                 # ドメイン層（純粋関数・外部依存なし）
-│   │   ├── book.ts             # Bookエンティティ・BookList型・差分検出
-│   │   └── isbn.ts             # ISBN/ASINの検証・変換
-│   ├── db/                     # 永続化層
-│   │   ├── schema.ts           # Drizzle ORMスキーマ定義
-│   │   ├── client.ts           # DB接続管理
-│   │   ├── bookRepository.ts   # リポジトリ（インターフェース + 実装）
-│   │   ├── dataLoader.ts       # CSV/DBの読み込みユーティリティ
-│   │   └── remoteUploader.ts   # Firebaseアップロードアダプタ
-│   ├── fetchers/               # 外部API連携層
-│   │   ├── index.ts            # フォールバックチェーン統合
-│   │   ├── openbd.ts           # OpenBD一括ISBN検索
-│   │   ├── ndl.ts              # 国立国会図書館API
-│   │   ├── isbndb.ts           # ISBNdb API
-│   │   ├── googlebooks.ts      # Google Books API
-│   │   └── cinii.ts            # CiNii Books 所蔵検索
-│   └── scrapers/               # Webスクレイピング層
-│       ├── browser.ts          # ブラウザライフサイクル管理
-│       ├── bookmaker.ts        # 読書メータースクレイパー
-│       └── kinokuniya.ts       # 紀伊國屋書店 説明文スクレイパー
-├── csv/                        # CSV出力先
-├── books.sqlite                # SQLiteデータベース
-└── mathlib_ja.txt              # 数学図書室の蔵書ISBNリスト
+apps/<name>/
+├── package.json      # TS パート（pnpm workspace member）
+├── tsconfig.json
+├── pyproject.toml    # Python パート（uv workspace member）
+├── ts/
+└── python/
 ```
 
-## データソース
+TS 側・Python 側それぞれを上記「TypeScript/Python プロジェクトを追加する」手順どおりにワークスペースへ登録する。両者の連携は共有 SQLite（`data/books.sqlite`）を介して行うのが基本で、言語間でスキーマ定義を直接共有しようとしない。スキーマの正は `apps/bookmeter/src/db/schema.ts` とし、Python 側は read-only で読む前提の独自モデルを持つ。
 
-| ソース | 用途 |
-|--------|------|
-| [読書メーター](https://bookmeter.com/) | 読みたい本・積読リストのスクレイピング元 |
-| [OpenBD](https://openbd.jp/) | ISBN一括検索による書誌情報の取得 |
-| [国立国会図書館サーチ](https://iss.ndl.go.jp/) | 書誌情報のフォールバック取得 |
-| [ISBNdb](https://isbndb.com/) | 書誌情報のフォールバック取得 |
-| [Google Books](https://books.google.com/) | 書誌情報のフォールバック取得 |
-| [CiNii Books](https://ci.nii.ac.jp/books/) | 大学図書館の所蔵検索・OPACリンク取得 |
-| [紀伊國屋書店](https://www.kinokuniya.co.jp/) | 書籍説明文のクロール |
+### チェックリスト
 
-## 主要な依存関係
-
-- **puppeteer** / **puppeteer-extra** — Webスクレイピング・ブラウザ自動操作
-- **axios** — HTTPクライアント
-- **better-sqlite3** / **drizzle-orm** — SQLiteデータベース・ORM
-- **firebase** — リモートストレージ
-- **papaparse** — CSV解析
-- **yargs** — CLI引数解析
-- **inversify** — 依存性注入
-
-## 環境変数
-
-`.env` ファイルに以下のAPIキー・認証情報を設定する必要がある:
-
-- `CINII_API_APPID` — CiNii Books APIのアプリケーションID
-- `GOOGLE_BOOKS_API_KEY` — Google Books APIキー
-- `ISBNDB_API_KEY` — ISBNdb APIキー
-- `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_APP_ID` — Firebase設定
+- [ ] `apps/<name>/` を作成し、該当する manifest（`package.json` / `pyproject.toml`）を配置した
+- [ ] ルートで `pnpm install` / `uv sync` を実行し、ワークスペースに認識させた
+- [ ] SQLite を読む場合、**read-only** 接続にした
+- [ ] ルート `package.json` の横断スクリプト（lint / type-check など）が新プロジェクトを拾うか確認した

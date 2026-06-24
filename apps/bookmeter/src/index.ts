@@ -23,6 +23,7 @@ import {
 } from "./application/pipeline";
 import { createDrizzleBookRepository } from "./db/bookRepository";
 import { createDbClient } from "./db/client";
+import { DB_PATH } from "./db/constants";
 import { createFirebaseUploader } from "./db/remoteUploader";
 import { formatErrorForLog } from "./fetchers/errors";
 import { createAxiosHttpClient } from "./fetchers/httpClient";
@@ -31,9 +32,10 @@ import { launchBookmeterBrowser } from "./scrapers/browser";
 
 import type { MainFuncOption } from "./application/executionMode";
 
-config({ path: path.join(__dirname, "../.env") });
+// .env はモノレポルートに置く（run_tasks.sh もルートの .env を参照する）。
+config({ path: path.join(__dirname, "../../../.env") });
 
-const DB_FILE = "./books.sqlite";
+const DB_FILE = DB_PATH;
 const DB_STORAGE_PATH = "bookmeter/books.sqlite";
 
 export async function main(option: MainFuncOption): Promise<boolean> {

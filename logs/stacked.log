@@ -1,31 +1,7 @@
-
-> bookmeter@1.0.0 stacked
-> tsx src/index.ts full stacked
-
+$ tsx src/index.ts full stacked
 Execution plan => mode=full, target=stacked, forceRefresh=false, scrape=remote(login=true), phases=compare -> fetchBiblio -> crawlDescriptions -> persist -> exportCsv -> uploadDb
 Loading previous book list from SQLite database (table: stacked)
 Loaded 1823 cached books from SQLite.
-Login Completed!
-Scraping Started!
-scanning page 1
-scanning page 2
-scanning page 3
-scanning page 4
-scanning page 5
-scanning page 6
-scanning page 7
-scanning page 8
-scanning page 9
-scanning page 10
-scanning page 11
-scanning page 12
-scanning page 13
-scanning page 14
-scanning page 15
-scanning page 16
-scanning page 17
-scanning page 18
-scanning page 19
-Cannot find any differences between the local and remote. The process will be aborted...
-Skipping library CSV reports for non-wish target.
-The processs took 41 seconds
+/home/stepney141/bookmaker/apps/bookmeter:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @bookmaker/bookmeter@1.0.0 stacked: `tsx src/index.ts full stacked`
+Exit status 130

@@ -1,0 +1,40 @@
+{
+  "name": "@bookmaker/bookmeter",
+  "version": "1.0.0",
+  "private": true,
+  "author": "stepney141 <stepney141andi.c.i@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.8",
+    "better-sqlite3": "^12.8.0",
+    "dotenv": "^16.3.1",
+    "drizzle-orm": "^0.45.2",
+    "fast-xml-parser": "^5.5.9",
+    "firebase": "^11.0.2",
+    "papaparse": "^5.4.1",
+    "pdfjs-dist": "^4.9.155",
+    "puppeteer": "^24.16.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "set-cookie-parser": "^3.1.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/papaparse": "^5.3.14",
+    "@types/yargs": "^17.0.33",
+    "prettier": "^3.2.4",
+    "tsx": "^4.20.3",
+    "typescript": "^6.0.2",
+    "vitest": "^3.1.2"
+  },
+  "scripts": {
+    "type-check": "tsc --pretty --noEmit",
+    "format": "prettier --write .",
+    "exec": "tsx",
+    "stacked": "tsx src/index.ts full stacked",
+    "wish": "tsx src/index.ts full wish",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}

@@ -1,118 +1,12 @@
-
-> bookmeter@1.0.0 wish
-> tsx src/index.ts full wish
-
+$ tsx src/index.ts full wish
 Execution plan => mode=full, target=wish, forceRefresh=false, scrape=remote(login=true), phases=compare -> fetchBiblio -> crawlDescriptions -> persist -> exportCsv -> uploadDb
 Loading previous book list from SQLite database (table: wish)
-Loaded 1821 cached books from SQLite.
+Loaded 1823 cached books from SQLite.
 Login Completed!
 Scraping Started!
 scanning page 1
 scanning page 2
 scanning page 3
-scanning page 4
-scanning page 5
-scanning page 6
-scanning page 7
-scanning page 8
-scanning page 9
-scanning page 10
-scanning page 11
-scanning page 12
-scanning page 13
-scanning page 14
-scanning page 15
-scanning page 16
-scanning page 17
-scanning page 18
-scanning page 19
-scanning page 20
-scanning page 21
-scanning page 22
-scanning page 23
-scanning page 24
-scanning page 25
-scanning page 26
-scanning page 27
-scanning page 28
-scanning page 29
-scanning page 30
-scanning page 31
-scanning page 32
-scanning page 33
-scanning page 34
-scanning page 35
-scanning page 36
-scanning page 37
-scanning page 38
-scanning page 39
-scanning page 40
-scanning page 41
-scanning page 42
-scanning page 43
-scanning page 44
-scanning page 45
-scanning page 46
-scanning page 47
-scanning page 48
-scanning page 49
-scanning page 50
-scanning page 51
-scanning page 52
-scanning page 53
-scanning page 54
-scanning page 55
-scanning page 56
-scanning page 57
-scanning page 58
-scanning page 59
-scanning page 60
-scanning page 61
-scanning page 62
-scanning page 63
-scanning page 64
-scanning page 65
-scanning page 66
-scanning page 67
-scanning page 68
-scanning page 69
-scanning page 70
-scanning page 71
-scanning page 72
-scanning page 73
-scanning page 74
-Bookmeter Scraping Completed!
-Detected some diffs between the local and remote.
-Fetching bibliographic information
-Completed fetching the list of ja books in Sophia Univ. Math Lib
-Completed fetching the list of ja books in Sophia Univ. Math Lib
-Completed creating a list of ISBNs of ja books in Sophia Univ. Math Lib
-Searching Completed
-Crawling Kinokuniya for book descriptions
-Loaded 1349 existing descriptions from database.
-Extracted description length: 895 characters
-Successfully fetched description for ISBN 4130607731.
-No book found with isbn_or_asin: 4130607731
-Extracted description length: 839 characters
-Successfully fetched description for ISBN 4297145715.
-No book found with isbn_or_asin: 4297145715
-Saving data to SQLite database
-Synchronizing book list with database table: wish
-Re-inserting 1459 books into wish in remote order...
-Synchronization complete for wish.
-Generating CSV from SQLite database
-Exporting columns [bookmeter_url, isbn_or_asin, book_title, author, publisher, published_date, exist_in_sophia, exist_in_utokyo, sophia_opac, utokyo_opac, sophia_mathlib_opac] from table wish to CSV file ./csv/bookmeter_wish_books.csv
-Fetched 1459 rows from wish.
-Successfully exported 1459 books to ./csv/bookmeter_wish_books.csv
-Finished writing ./csv/bookmeter_wish_books.csv
-Generating library CSV reports for wish list
-Finished writing ./csv/not_in_Sophia.csv
-Finished writing ./csv/in_Sophia.csv
-Finished writing ./csv/not_in_UTokyo.csv
-Finished writing ./csv/in_UTokyo.csv
-Finished writing ./csv/in_Sophia_but_not_in_UTokyo.csv
-Finished writing ./csv/in_UTokyo_but_not_in_Sophia.csv
-Finished writing ./csv/not_in_Sophia_and_UTokyo.csv
-Uploading SQLite database to Firebase Storage...
-Database uploaded successfully to bookmeter/books.sqlite
-The processs took 360 seconds
+/home/stepney141/bookmaker/apps/bookmeter:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @bookmaker/bookmeter@1.0.0 wish: `tsx src/index.ts full wish`
+Exit status 130

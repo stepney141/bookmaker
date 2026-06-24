@@ -66,13 +66,13 @@ run_npm_script() {
   local script_name=$1
   local log_file="$LOG_DIR/$script_name.log"
 
-  echo "[$(date '+%F %T')] start  npm run $script_name"
-  if npm run "$script_name" &> "$log_file"; then
-    echo "[$(date '+%F %T')] done   npm run $script_name"
+  echo "[$(date '+%F %T')] start  pnpm run $script_name"
+  if pnpm --filter @bookmaker/bookmeter run "$script_name" &> "$log_file"; then
+    echo "[$(date '+%F %T')] done   pnpm run $script_name"
     return 0
   fi
 
-  echo "[$(date '+%F %T')] failed npm run $script_name"
+  echo "[$(date '+%F %T')] failed pnpm run $script_name"
   echo "log: $log_file"
   notify_discord_failure "$script_name" "$log_file"
   return 1

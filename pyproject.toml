@@ -1,0 +1,6 @@
+# uv workspace root (virtual: not itself a package).
+# Python projects added under apps/* are picked up automatically.
+# apps/bookmeter is TypeScript-only, so it is excluded.
+[tool.uv.workspace]
+members = ["apps/*", "packages/*"]
+exclude = ["apps/bookmeter"]

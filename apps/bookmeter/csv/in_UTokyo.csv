@@ -1,4 +1,8 @@
 isbn_or_asin,book_title,author,publisher,published_date,utokyo_opac
+4873115388,実践Metasploit : ペネトレーションテストによる脆弱性評価,"Kennedy,David,1982- O'Gorman,Jim Kearns,Devon ほか",オーム社,201205,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB09253629
+4274228797,マスタリングTCP/IP 情報セキュリティ編,"齋藤,孝道",オーム社,202206,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BC15522154
+4797382228,暗号技術入門 : 秘密の国のアリス,"結城,浩,1963-",SBクリエイティブ,201509,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB19347547
+4087212661,サークル有害論 : なぜ小集団は毒されるのか 1166 (集英社新書),"荒木,優太,1987-",集英社,202306,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD02615908
 4130607731,地球物理データの逆解析 : 理論と応用,松浦充宏 深畑幸俊,東京大学出版会,,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD19199910
 4585202811,権利処理と法の実務 1 (デジタルアーカイブ・ベーシックス),"福井,健策,1965- 数藤,雅彦,1982-",勉誠出版,201903,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB27953112
 4839981728,単体テストの考え方/使い方 (Compass Programming),"Khorikov,Vladimir 須田,智之",マイナビ出版,202212,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD00496331
@@ -220,7 +224,7 @@ isbn_or_asin,book_title,author,publisher,published_date,utokyo_opac
 4895907813,真に役立つ研究のデザインと統計処理 : 統計学の論理的なストーリーを理解する,"関屋,昇",三輪書店,202409,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD08607287
 4480427457,絶滅寸前季語辞典,夏井いつき／著,筑摩書房,20100801,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB02970632
 4873119235,ハンズオンNode.js,"今村,謙士",オーム社,202011,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BC03828474
-4334103804,まったく新しいアカデミック・ライティングの教科書,阿部幸大,光文社,,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD07847398
+4334103804,まったく新しいアカデミック・ライティングの教科書,"阿部,幸大,1987-",光文社,202407,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD07847398
 4535540438,因果推論の計量経済学,川口康平 澤田真行,日本評論社,,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD0857886X
 4297143097,深層ニューラルネットワークの高速化,佐藤竜馬,技術評論社,,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD08482782
 4758918228,形式意味論入門 27 (開拓社叢書),"田中,拓郎",開拓社,201609,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB22032012
