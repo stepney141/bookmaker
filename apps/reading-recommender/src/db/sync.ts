@@ -1,4 +1,3 @@
-
 import { sourceBookToSnapshot } from "./appDb";
 import { sha256 } from "./hash";
 
@@ -11,6 +10,10 @@ export type SourceSyncResult = {
   readonly wishCount: number;
   readonly stackedCount: number;
   readonly currentBooks: readonly BookSnapshot[];
+};
+
+type ScanRunHashRow = {
+  readonly source_hash: string;
 };
 
 function nowIso(): string {
@@ -28,13 +31,26 @@ function createContentHash(book: SourceBook): string {
     book.description,
     book.inWish,
     book.inStacked,
+    book.sophiaLibraryStatus,
+    book.utokyoLibraryStatus,
+    book.sophiaOpacUrl,
+    book.utokyoOpacUrl,
     book.remoteRank,
     book.remoteRankSource
   ]);
 }
 
 function createSourceHash(books: readonly SourceBook[]): string {
-  return sha256(books.flatMap((book) => [book.bookmeterUrl, createContentHash(book), book.remoteRank, book.remoteRankSource]));
+  return sha256(
+    books.flatMap((book) => [book.bookmeterUrl, createContentHash(book), book.remoteRank, book.remoteRankSource])
+  );
+}
+
+function getLatestSourceHash(db: Database.Database): string | null {
+  const row = db.prepare("SELECT source_hash FROM scan_run ORDER BY id DESC LIMIT 1").get() as
+    | ScanRunHashRow
+    | undefined;
+  return row?.source_hash ?? null;
 }
 
 function getExistingFirstSeenAt(db: Database.Database, bookmeterUrl: string, fallback: string): string {
@@ -64,6 +80,10 @@ function upsertSnapshot(db: Database.Database, book: BookSnapshot): void {
       description,
       in_wish,
       in_stacked,
+      sophia_library_status,
+      utokyo_library_status,
+      sophia_opac_url,
+      utokyo_opac_url,
       wish_rowid,
       stacked_rowid,
       remote_rank,
@@ -73,7 +93,7 @@ function upsertSnapshot(db: Database.Database, book: BookSnapshot): void {
       last_seen_at,
       last_scan_run_id
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(bookmeter_url) DO UPDATE SET
       isbn_or_asin = excluded.isbn_or_asin,
       book_title = excluded.book_title,
@@ -83,6 +103,10 @@ function upsertSnapshot(db: Database.Database, book: BookSnapshot): void {
       description = excluded.description,
       in_wish = excluded.in_wish,
       in_stacked = excluded.in_stacked,
+      sophia_library_status = excluded.sophia_library_status,
+      utokyo_library_status = excluded.utokyo_library_status,
+      sophia_opac_url = excluded.sophia_opac_url,
+      utokyo_opac_url = excluded.utokyo_opac_url,
       wish_rowid = excluded.wish_rowid,
       stacked_rowid = excluded.stacked_rowid,
       remote_rank = excluded.remote_rank,
@@ -100,6 +124,10 @@ function upsertSnapshot(db: Database.Database, book: BookSnapshot): void {
     book.description,
     book.inWish ? 1 : 0,
     book.inStacked ? 1 : 0,
+    book.sophiaLibraryStatus,
+    book.utokyoLibraryStatus,
+    book.sophiaOpacUrl,
+    book.utokyoOpacUrl,
     book.wishRowid,
     book.stackedRowid,
     book.remoteRank,
@@ -137,9 +165,9 @@ export function syncSourceBooks(input: {
     });
 
     for (const snapshot of snapshots) {
-      const existing = input.db.prepare("SELECT content_hash FROM book_snapshot WHERE bookmeter_url = ?").get(snapshot.bookmeterUrl) as
-        | { readonly content_hash: string }
-        | undefined;
+      const existing = input.db
+        .prepare("SELECT content_hash FROM book_snapshot WHERE bookmeter_url = ?")
+        .get(snapshot.bookmeterUrl) as { readonly content_hash: string } | undefined;
       upsertSnapshot(input.db, snapshot);
 
       if (existing?.content_hash !== snapshot.contentHash) {
@@ -157,4 +185,19 @@ export function syncSourceBooks(input: {
   });
 
   return transaction();
+}
+
+export function syncSourceBooksIfChanged(input: {
+  readonly db: Database.Database;
+  readonly booksDbPath: string;
+  readonly sourceBooks: readonly SourceBook[];
+}): SourceSyncResult | null {
+  const sourceHash = createSourceHash(input.sourceBooks);
+  const latestSourceHash = getLatestSourceHash(input.db);
+
+  if (latestSourceHash === sourceHash) {
+    return null;
+  }
+
+  return syncSourceBooks(input);
 }

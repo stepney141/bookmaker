@@ -1,4 +1,10 @@
-import type { AppSettings, CurrentRecommendation, RowOrderDiagnostics, SearchResult } from "../shared/types";
+import type {
+  AppSettings,
+  CurrentRecommendation,
+  RowOrderDiagnostics,
+  SearchFilters,
+  SearchResult
+} from "../shared/types";
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
@@ -38,11 +44,17 @@ export function promoteRecommendation(bookmeterUrl: string): Promise<CurrentReco
   });
 }
 
-export function searchBooks(query: string, limit?: number): Promise<readonly SearchResult[]> {
+export function searchBooks(query: string, limit?: number, filters?: SearchFilters): Promise<readonly SearchResult[]> {
   const params = new URLSearchParams({ q: query });
 
   if (limit !== undefined) {
     params.set("limit", String(limit));
+  }
+  if (filters && filters.lists.length > 0) {
+    params.set("list", filters.lists.join(","));
+  }
+  if (filters && filters.libraries.length > 0) {
+    params.set("library", filters.libraries.join(","));
   }
 
   return requestJson<readonly SearchResult[]>(`/api/search?${params.toString()}`);

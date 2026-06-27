@@ -1,5 +1,14 @@
 export type BookListKind = "wish" | "stacked";
 
+export type LibraryAvailability = "available" | "unavailable" | "unknown";
+
+export type SearchLibraryFilter = "utokyo" | "sophia" | "neither";
+
+export type SearchFilters = {
+  readonly lists: readonly BookListKind[];
+  readonly libraries: readonly SearchLibraryFilter[];
+};
+
 export type RemoteOrderAgeDirection = "larger_is_older" | "larger_is_newer" | "disabled";
 
 export type RecommendationReason = "initial" | "manual" | "scheduled" | "source_changed" | "skip" | "promote";
@@ -16,6 +25,10 @@ export type SourceBook = {
   readonly description: string;
   readonly inWish: boolean;
   readonly inStacked: boolean;
+  readonly sophiaLibraryStatus: LibraryAvailability;
+  readonly utokyoLibraryStatus: LibraryAvailability;
+  readonly sophiaOpacUrl: string;
+  readonly utokyoOpacUrl: string;
   readonly wishRowid: number | null;
   readonly stackedRowid: number | null;
   readonly remoteRank: number;

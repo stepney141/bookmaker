@@ -55,4 +55,23 @@ describe("search API", () => {
       await app.close();
     }
   });
+
+  it("passes validated search filters to the service", async () => {
+    const { service, search } = createService();
+    const app = await createApiServer(service);
+
+    try {
+      await app.inject({
+        method: "GET",
+        url: "/api/search?q=%E6%9A%97%E5%8F%B7&list=wish,stacked&library=utokyo,neither,invalid"
+      });
+
+      expect(search).toHaveBeenCalledWith("暗号", undefined, {
+        lists: ["wish", "stacked"],
+        libraries: ["utokyo", "neither"]
+      });
+    } finally {
+      await app.close();
+    }
+  });
 });

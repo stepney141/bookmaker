@@ -6,7 +6,9 @@ import { scoreBooks } from "./scoring";
 
 import type { BookSnapshot } from "../shared/types";
 
-function snapshot(input: Partial<BookSnapshot> & Pick<BookSnapshot, "bookmeterUrl" | "title" | "remoteRank">): BookSnapshot {
+function snapshot(
+  input: Partial<BookSnapshot> & Pick<BookSnapshot, "bookmeterUrl" | "title" | "remoteRank">
+): BookSnapshot {
   return {
     isbnOrAsin: null,
     author: "著者",
@@ -15,6 +17,10 @@ function snapshot(input: Partial<BookSnapshot> & Pick<BookSnapshot, "bookmeterUr
     description: "説明文があります。",
     inWish: true,
     inStacked: false,
+    sophiaLibraryStatus: "unknown",
+    utokyoLibraryStatus: "unknown",
+    sophiaOpacUrl: "",
+    utokyoOpacUrl: "",
     wishRowid: input.remoteRank,
     stackedRowid: null,
     remoteRankSource: "wish",

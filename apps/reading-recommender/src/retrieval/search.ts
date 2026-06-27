@@ -1,4 +1,4 @@
-import type { SearchResult } from "../shared/types";
+import type { SearchFilters, SearchResult } from "../shared/types";
 import type Database from "better-sqlite3";
 
 type SearchRow = {
@@ -16,6 +16,10 @@ type SnapshotRow = {
   readonly description: string;
   readonly in_wish: number;
   readonly in_stacked: number;
+  readonly sophia_library_status: "available" | "unavailable" | "unknown";
+  readonly utokyo_library_status: "available" | "unavailable" | "unknown";
+  readonly sophia_opac_url: string;
+  readonly utokyo_opac_url: string;
   readonly wish_rowid: number | null;
   readonly stacked_rowid: number | null;
   readonly remote_rank: number;
@@ -162,6 +166,10 @@ function rowToSearchResult(input: {
     description: input.row.description,
     inWish: input.row.in_wish === 1,
     inStacked: input.row.in_stacked === 1,
+    sophiaLibraryStatus: input.row.sophia_library_status,
+    utokyoLibraryStatus: input.row.utokyo_library_status,
+    sophiaOpacUrl: input.row.sophia_opac_url,
+    utokyoOpacUrl: input.row.utokyo_opac_url,
     wishRowid: input.row.wish_rowid,
     stackedRowid: input.row.stacked_rowid,
     remoteRank: input.row.remote_rank,
@@ -208,14 +216,40 @@ function selectFtsRows(db: Database.Database, analysis: QueryAnalysis, limit: nu
   return rankByUrl;
 }
 
-function selectCurrentRows(db: Database.Database, scanRunId: number): readonly SnapshotRow[] {
+function matchesFilters(row: SnapshotRow, filters: SearchFilters | undefined): boolean {
+  const listMatches =
+    !filters ||
+    filters.lists.length === 0 ||
+    filters.lists.some((list) => (list === "wish" ? row.in_wish === 1 : row.in_stacked === 1));
+  const libraryMatches =
+    !filters ||
+    filters.libraries.length === 0 ||
+    filters.libraries.some((library) => {
+      if (library === "utokyo") {
+        return row.utokyo_library_status === "available";
+      }
+      if (library === "sophia") {
+        return row.sophia_library_status === "available";
+      }
+      return row.utokyo_library_status === "unavailable" && row.sophia_library_status === "unavailable";
+    });
+
+  return listMatches && libraryMatches;
+}
+
+function selectCurrentRows(
+  db: Database.Database,
+  scanRunId: number,
+  filters: SearchFilters | undefined
+): readonly SnapshotRow[] {
   return db
     .prepare(
       `SELECT *
        FROM book_snapshot
        WHERE last_scan_run_id = ?`
     )
-    .all(scanRunId) as readonly SnapshotRow[];
+    .all(scanRunId)
+    .filter((row): row is SnapshotRow => matchesFilters(row as SnapshotRow, filters));
 }
 
 function scoreMetadata(input: {
@@ -283,6 +317,7 @@ export function searchBooks(input: {
   readonly db: Database.Database;
   readonly query: string;
   readonly limit: number;
+  readonly filters?: SearchFilters;
   readonly semantic?: SemanticSearchInput;
 }): readonly SearchResult[] {
   const analysis = analyzeQuery(input.query);
@@ -300,7 +335,7 @@ export function searchBooks(input: {
   }
 
   const ftsScores = selectFtsRows(input.db, analysis, input.limit * 5);
-  const rows = selectCurrentRows(input.db, currentScanRun.id);
+  const rows = selectCurrentRows(input.db, currentScanRun.id, input.filters);
 
   return rows
     .flatMap((row) => {

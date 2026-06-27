@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 
-import type { BookListKind, SourceBook, SourceOrderRow } from "../shared/types";
+import type { BookListKind, LibraryAvailability, SourceBook, SourceOrderRow } from "../shared/types";
 
 type SourceRow = {
   readonly source_rowid: number;
@@ -11,6 +11,10 @@ type SourceRow = {
   readonly publisher: string | null;
   readonly published_date: string | null;
   readonly description: string | null;
+  readonly sophia_opac: string | null;
+  readonly utokyo_opac: string | null;
+  readonly exist_in_sophia: string | null;
+  readonly exist_in_utokyo: string | null;
 };
 
 export type SourceBooksRepository = {
@@ -27,6 +31,26 @@ function normalizeText(value: string | null): string {
   return value?.trim() ?? "";
 }
 
+function normalizeLibraryAvailability(value: string | null): LibraryAvailability {
+  if (value === "Yes") {
+    return "available";
+  }
+  if (value === "No") {
+    return "unavailable";
+  }
+  return "unknown";
+}
+
+function mergeLibraryAvailability(existing: LibraryAvailability, incoming: LibraryAvailability): LibraryAvailability {
+  if (existing === "available" || incoming === "available") {
+    return "available";
+  }
+  if (existing === "unknown" || incoming === "unknown") {
+    return "unknown";
+  }
+  return "unavailable";
+}
+
 function rowToPartialBook(row: SourceRow, listKind: BookListKind): SourceBook {
   const rowid = row.source_rowid;
 
@@ -40,6 +64,10 @@ function rowToPartialBook(row: SourceRow, listKind: BookListKind): SourceBook {
     description: normalizeText(row.description),
     inWish: listKind === "wish",
     inStacked: listKind === "stacked",
+    sophiaLibraryStatus: normalizeLibraryAvailability(row.exist_in_sophia),
+    utokyoLibraryStatus: normalizeLibraryAvailability(row.exist_in_utokyo),
+    sophiaOpacUrl: normalizeText(row.sophia_opac),
+    utokyoOpacUrl: normalizeText(row.utokyo_opac),
     wishRowid: listKind === "wish" ? rowid : null,
     stackedRowid: listKind === "stacked" ? rowid : null,
     remoteRank: rowid,
@@ -52,7 +80,8 @@ function mergeBooks(existing: SourceBook, incoming: SourceBook): SourceBook {
   const stackedRowid = existing.stackedRowid ?? incoming.stackedRowid;
   const wishRowid = existing.wishRowid ?? incoming.wishRowid;
   const remoteRankSource = inStacked ? "stacked" : "wish";
-  const remoteRank = remoteRankSource === "stacked" ? (stackedRowid ?? incoming.remoteRank) : (wishRowid ?? incoming.remoteRank);
+  const remoteRank =
+    remoteRankSource === "stacked" ? (stackedRowid ?? incoming.remoteRank) : (wishRowid ?? incoming.remoteRank);
 
   return {
     ...existing,
@@ -64,6 +93,10 @@ function mergeBooks(existing: SourceBook, incoming: SourceBook): SourceBook {
     description: existing.description || incoming.description,
     inWish: existing.inWish || incoming.inWish,
     inStacked,
+    sophiaLibraryStatus: mergeLibraryAvailability(existing.sophiaLibraryStatus, incoming.sophiaLibraryStatus),
+    utokyoLibraryStatus: mergeLibraryAvailability(existing.utokyoLibraryStatus, incoming.utokyoLibraryStatus),
+    sophiaOpacUrl: existing.sophiaOpacUrl || incoming.sophiaOpacUrl,
+    utokyoOpacUrl: existing.utokyoOpacUrl || incoming.utokyoOpacUrl,
     wishRowid,
     stackedRowid,
     remoteRank,
@@ -82,14 +115,23 @@ function selectRows(db: Database.Database, tableName: BookListKind): readonly So
         author,
         publisher,
         published_date,
-        description
+        description,
+        sophia_opac,
+        utokyo_opac,
+        exist_in_Sophia AS exist_in_sophia,
+        exist_in_UTokyo AS exist_in_utokyo
       FROM ${tableName}
       ORDER BY rowid ASC`
     )
     .all() as readonly SourceRow[];
 }
 
-function selectOrderRows(db: Database.Database, tableName: BookListKind, direction: "ASC" | "DESC", limit: number): readonly SourceOrderRow[] {
+function selectOrderRows(
+  db: Database.Database,
+  tableName: BookListKind,
+  direction: "ASC" | "DESC",
+  limit: number
+): readonly SourceOrderRow[] {
   const rows = db
     .prepare(
       `SELECT

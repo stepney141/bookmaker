@@ -6,6 +6,7 @@ import { SEARCH_MAX_RESULTS } from "../shared/searchLimits";
 import { DEFAULT_SETTINGS } from "../shared/settings";
 
 import type { ReadingRecommenderService } from "./service";
+import type { SearchFilters } from "../shared/types";
 import type { FastifyInstance } from "fastify";
 
 const settingsSchema = z.object({
@@ -37,6 +38,33 @@ function parseSearchLimit(value: string | undefined): number | undefined {
   return Number.isInteger(limit) && limit >= 1 && limit <= SEARCH_MAX_RESULTS ? limit : undefined;
 }
 
+function parseQueryValues(value: string | readonly string[] | undefined): readonly string[] {
+  if (value === undefined) {
+    return [];
+  }
+  const values: readonly string[] = typeof value === "string" ? [value] : value;
+  return values.flatMap((item) => item.split(",").map((part: string) => part.trim())).filter((part) => part.length > 0);
+}
+
+function parseSearchFilters(query: {
+  readonly list?: string | readonly string[];
+  readonly library?: string | readonly string[];
+}): SearchFilters | undefined {
+  const lists = parseQueryValues(query.list).filter(
+    (value): value is SearchFilters["lists"][number] => value === "wish" || value === "stacked"
+  );
+  const libraries = parseQueryValues(query.library).filter(
+    (value): value is SearchFilters["libraries"][number] =>
+      value === "utokyo" || value === "sophia" || value === "neither"
+  );
+
+  if (lists.length === 0 && libraries.length === 0) {
+    return undefined;
+  }
+
+  return { lists: [...new Set(lists)], libraries: [...new Set(libraries)] };
+}
+
 export async function createApiServer(service: ReadingRecommenderService): Promise<FastifyInstance> {
   const app = Fastify({ logger: true });
   await app.register(cors, { origin: true });
@@ -57,8 +85,16 @@ export async function createApiServer(service: ReadingRecommenderService): Promi
   });
 
   app.get("/api/search", (request) => {
-    const query = request.query as { readonly q?: string; readonly limit?: string };
-    return service.search(query.q ?? "", parseSearchLimit(query.limit));
+    const query = request.query as {
+      readonly q?: string;
+      readonly limit?: string;
+      readonly list?: string | readonly string[];
+      readonly library?: string | readonly string[];
+    };
+    const filters = parseSearchFilters(query);
+    return filters
+      ? service.search(query.q ?? "", parseSearchLimit(query.limit), filters)
+      : service.search(query.q ?? "", parseSearchLimit(query.limit));
   });
 
   app.get("/api/books/diagnostics/row-order", () => service.diagnostics());

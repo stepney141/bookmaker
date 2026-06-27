@@ -1,6 +1,6 @@
 import { getCurrentSnapshots, getSettings, saveSettings } from "../db/appDb";
 import { createSourceBooksRepository } from "../db/sourceBooks";
-import { syncSourceBooks } from "../db/sync";
+import { syncSourceBooks, syncSourceBooksIfChanged } from "../db/sync";
 import { ensureBookEmbeddings } from "../embedding/repository";
 import { createSemanticScores, embedQuery } from "../embedding/search";
 import { promoteRecommendation, runRecommendation, skipRecommendation } from "../recommendation/engine";
@@ -15,6 +15,7 @@ import type {
   CurrentRecommendation,
   RecommendationReason,
   RowOrderDiagnostics,
+  SearchFilters,
   SearchResult
 } from "../shared/types";
 
@@ -24,7 +25,7 @@ export type ReadingRecommenderService = {
   readonly current: () => CurrentRecommendation | null;
   readonly skip: () => CurrentRecommendation | null;
   readonly promote: (bookmeterUrl: string) => CurrentRecommendation | null;
-  readonly search: (query: string, limit?: number) => Promise<readonly SearchResult[]>;
+  readonly search: (query: string, limit?: number, filters?: SearchFilters) => Promise<readonly SearchResult[]>;
   readonly diagnostics: () => readonly RowOrderDiagnostics[];
   readonly getSettings: () => AppSettings;
   readonly updateSettings: (settings: AppSettings) => AppSettings;
@@ -90,12 +91,14 @@ export function createReadingRecommenderService(input: {
       return currentWithRelated(input.appDb, settings.relatedCount);
     },
 
-    async search(query, limit) {
+    async search(query, limit, filters) {
+      const sourceBooks = sourceRepository.loadCurrentBooks();
+      syncSourceBooksIfChanged({ db: input.appDb.db, booksDbPath: input.booksDbPath, sourceBooks });
       const settings = getSettings(input.appDb.db);
       const resultLimit = limit ?? settings.searchResultCount;
 
       if (!input.embeddingProvider) {
-        return searchBooks({ db: input.appDb.db, query, limit: resultLimit });
+        return searchBooks({ db: input.appDb.db, query, limit: resultLimit, filters });
       }
 
       try {
@@ -108,17 +111,18 @@ export function createReadingRecommenderService(input: {
         const queryVector = await embedQuery({ provider: input.embeddingProvider, query });
 
         if (!queryVector) {
-          return searchBooks({ db: input.appDb.db, query, limit: resultLimit });
+          return searchBooks({ db: input.appDb.db, query, limit: resultLimit, filters });
         }
 
         return searchBooks({
           db: input.appDb.db,
           query,
           limit: resultLimit,
+          filters,
           semantic: { scoresByUrl: createSemanticScores({ queryVector, embeddings }) }
         });
       } catch {
-        return searchBooks({ db: input.appDb.db, query, limit: resultLimit });
+        return searchBooks({ db: input.appDb.db, query, limit: resultLimit, filters });
       }
     },
 

@@ -4,7 +4,6 @@ import { DEFAULT_SETTINGS } from "../shared/settings";
 
 import { APP_DB_MIGRATIONS } from "./migrations";
 
-
 import type { AppSettings, BookSnapshot, SourceBook } from "../shared/types";
 
 export type AppDb = {
@@ -22,6 +21,10 @@ type BookSnapshotRow = {
   readonly description: string;
   readonly in_wish: number;
   readonly in_stacked: number;
+  readonly sophia_library_status: "available" | "unavailable" | "unknown";
+  readonly utokyo_library_status: "available" | "unavailable" | "unknown";
+  readonly sophia_opac_url: string;
+  readonly utokyo_opac_url: string;
   readonly wish_rowid: number | null;
   readonly stacked_rowid: number | null;
   readonly remote_rank: number;
@@ -36,8 +39,30 @@ type SettingRow = {
   readonly value_json: string;
 };
 
+type TableInfoRow = {
+  readonly name: string;
+};
+
+const BOOK_SNAPSHOT_LIBRARY_COLUMNS = [
+  { name: "sophia_library_status", definition: "TEXT NOT NULL DEFAULT 'unknown'" },
+  { name: "utokyo_library_status", definition: "TEXT NOT NULL DEFAULT 'unknown'" },
+  { name: "sophia_opac_url", definition: "TEXT NOT NULL DEFAULT ''" },
+  { name: "utokyo_opac_url", definition: "TEXT NOT NULL DEFAULT ''" }
+] as const;
+
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+function ensureBookSnapshotLibraryColumns(db: Database.Database): void {
+  const rows = db.prepare("PRAGMA table_info(book_snapshot)").all() as readonly TableInfoRow[];
+  const existingColumns = new Set(rows.map((row) => row.name));
+
+  for (const column of BOOK_SNAPSHOT_LIBRARY_COLUMNS) {
+    if (!existingColumns.has(column.name)) {
+      db.exec(`ALTER TABLE book_snapshot ADD COLUMN ${column.name} ${column.definition}`);
+    }
+  }
 }
 
 function rowToSnapshot(row: BookSnapshotRow): BookSnapshot {
@@ -51,6 +76,10 @@ function rowToSnapshot(row: BookSnapshotRow): BookSnapshot {
     description: row.description,
     inWish: row.in_wish === 1,
     inStacked: row.in_stacked === 1,
+    sophiaLibraryStatus: row.sophia_library_status,
+    utokyoLibraryStatus: row.utokyo_library_status,
+    sophiaOpacUrl: row.sophia_opac_url,
+    utokyoOpacUrl: row.utokyo_opac_url,
     wishRowid: row.wish_rowid,
     stackedRowid: row.stacked_rowid,
     remoteRank: row.remote_rank,
@@ -69,6 +98,7 @@ export function openAppDb(dbPath: string): AppDb {
   for (const migration of APP_DB_MIGRATIONS) {
     db.exec(migration);
   }
+  ensureBookSnapshotLibraryColumns(db);
 
   saveSettings(db, { ...DEFAULT_SETTINGS, ...loadSettings(db) });
 
@@ -104,7 +134,9 @@ export function getSettings(db: Database.Database): AppSettings {
 }
 
 export function getCurrentSnapshots(db: Database.Database): readonly BookSnapshot[] {
-  const scanRun = db.prepare("SELECT id FROM scan_run ORDER BY id DESC LIMIT 1").get() as { readonly id: number } | undefined;
+  const scanRun = db.prepare("SELECT id FROM scan_run ORDER BY id DESC LIMIT 1").get() as
+    | { readonly id: number }
+    | undefined;
 
   if (!scanRun) {
     return [];
@@ -123,7 +155,9 @@ export function getSnapshotsByUrls(db: Database.Database, urls: readonly string[
   }
 
   const placeholders = urls.map(() => "?").join(", ");
-  const rows = db.prepare(`SELECT * FROM book_snapshot WHERE bookmeter_url IN (${placeholders})`).all(...urls) as readonly BookSnapshotRow[];
+  const rows = db
+    .prepare(`SELECT * FROM book_snapshot WHERE bookmeter_url IN (${placeholders})`)
+    .all(...urls) as readonly BookSnapshotRow[];
   const byUrl = new Map(rows.map((row) => [row.bookmeter_url, rowToSnapshot(row)]));
   return urls.flatMap((url) => {
     const snapshot = byUrl.get(url);
@@ -147,7 +181,13 @@ export function insertRecommendationEvent(input: {
     .run(input.eventType, input.bookmeterUrl, input.cycleId, input.reason, nowIso(), JSON.stringify(input.payload));
 }
 
-export function sourceBookToSnapshot(book: SourceBook, contentHash: string, firstSeenAt: string, scanRunId: number, timestamp: string): BookSnapshot {
+export function sourceBookToSnapshot(
+  book: SourceBook,
+  contentHash: string,
+  firstSeenAt: string,
+  scanRunId: number,
+  timestamp: string
+): BookSnapshot {
   return {
     ...book,
     contentHash,

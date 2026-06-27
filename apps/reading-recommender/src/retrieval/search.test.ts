@@ -24,6 +24,8 @@ function book(input: {
   readonly publisher?: string;
   readonly description: string;
   readonly inStacked?: boolean;
+  readonly sophiaLibraryStatus?: SourceBook["sophiaLibraryStatus"];
+  readonly utokyoLibraryStatus?: SourceBook["utokyoLibraryStatus"];
   readonly remoteRank: number;
 }): SourceBook {
   return {
@@ -36,6 +38,10 @@ function book(input: {
     description: input.description,
     inWish: !input.inStacked,
     inStacked: input.inStacked ?? false,
+    sophiaLibraryStatus: input.sophiaLibraryStatus ?? "unknown",
+    utokyoLibraryStatus: input.utokyoLibraryStatus ?? "unknown",
+    sophiaOpacUrl: input.sophiaLibraryStatus === "available" ? "https://sophia.example/opac" : "",
+    utokyoOpacUrl: input.utokyoLibraryStatus === "available" ? "https://utokyo.example/opac" : "",
     wishRowid: input.inStacked ? null : input.remoteRank,
     stackedRowid: input.inStacked ? input.remoteRank : null,
     remoteRank: input.remoteRank,
@@ -53,6 +59,7 @@ function openSearchFixture(dir: string): AppDb {
       author: "山田太郎",
       description: "暗号、認証、脆弱性を扱う情報セキュリティの入門書です。",
       inStacked: true,
+      utokyoLibraryStatus: "available",
       remoteRank: 1
     }),
     book({
@@ -61,6 +68,7 @@ function openSearchFixture(dir: string): AppDb {
       title: "統計的学習",
       author: "佐藤花子",
       description: "統計と機械学習の基礎を説明します。",
+      sophiaLibraryStatus: "available",
       remoteRank: 2
     }),
     book({
@@ -69,6 +77,8 @@ function openSearchFixture(dir: string): AppDb {
       title: "臨床研究法",
       author: "鈴木一郎",
       description: "臨床研究の計画、解析、倫理を扱います。",
+      sophiaLibraryStatus: "unavailable",
+      utokyoLibraryStatus: "unavailable",
       remoteRank: 3
     }),
     book({
@@ -78,6 +88,14 @@ function openSearchFixture(dir: string): AppDb {
       author: "田中次郎",
       description: "古代から近現代までの日本史を概説します。",
       remoteRank: 4
+    }),
+    book({
+      url: "https://bookmeter.example/unknown-holding",
+      isbnOrAsin: "9784000000059",
+      title: "未取得研究",
+      author: "高橋三郎",
+      description: "所蔵確認が未取得の研究書です。",
+      remoteRank: 5
     })
   ];
 
@@ -210,6 +228,73 @@ describe("searchBooks", () => {
       });
 
       expect(results[0]?.bookmeterUrl).toBe("https://bookmeter.example/statistics");
+
+      appDb.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("filters search candidates by list membership before ranking", () => {
+    const dir = createTempDir();
+    try {
+      const appDb = openSearchFixture(dir);
+
+      const results = searchBooks({
+        db: appDb.db,
+        query: "基礎",
+        limit: 5,
+        filters: { lists: ["stacked"], libraries: [] }
+      });
+
+      expect(results.map((result) => result.bookmeterUrl)).toEqual(["https://bookmeter.example/security"]);
+
+      appDb.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("filters search candidates by selected library holdings", () => {
+    const dir = createTempDir();
+    try {
+      const appDb = openSearchFixture(dir);
+
+      const utokyoResults = searchBooks({
+        db: appDb.db,
+        query: "基礎",
+        limit: 5,
+        filters: { lists: [], libraries: ["utokyo"] }
+      });
+      const sophiaResults = searchBooks({
+        db: appDb.db,
+        query: "学習",
+        limit: 5,
+        filters: { lists: [], libraries: ["sophia"] }
+      });
+
+      expect(utokyoResults.map((result) => result.bookmeterUrl)).toEqual(["https://bookmeter.example/security"]);
+      expect(sophiaResults.map((result) => result.bookmeterUrl)).toEqual(["https://bookmeter.example/statistics"]);
+
+      appDb.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("treats neither-library as explicit no in both libraries", () => {
+    const dir = createTempDir();
+    try {
+      const appDb = openSearchFixture(dir);
+
+      const results = searchBooks({
+        db: appDb.db,
+        query: "研究",
+        limit: 5,
+        filters: { lists: [], libraries: ["neither"] }
+      });
+
+      expect(results.map((result) => result.bookmeterUrl)).toEqual(["https://bookmeter.example/clinical"]);
 
       appDb.close();
     } finally {

@@ -1,10 +1,8 @@
-
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
-
 
 import { getSettings, openAppDb } from "../db/appDb";
 import { syncSourceBooks } from "../db/sync";
@@ -23,6 +21,10 @@ function book(input: Partial<SourceBook> & Pick<SourceBook, "bookmeterUrl" | "ti
     description: "説明文があります。",
     inWish: false,
     inStacked: true,
+    sophiaLibraryStatus: "unknown",
+    utokyoLibraryStatus: "unknown",
+    sophiaOpacUrl: "",
+    utokyoOpacUrl: "",
     wishRowid: null,
     stackedRowid: input.remoteRank,
     remoteRankSource: "stacked",
