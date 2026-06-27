@@ -1,8 +1,10 @@
-import dotenv from "dotenv";
 import { join } from "node:path";
+
+import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 
 import { openAppDb } from "../db/appDb";
+import { createOpenAIEmbeddingProviderFromEnv } from "../embedding/openai";
 
 import { createApiServer } from "./api";
 import { getAppDbPath, getBooksDbPath, getWorkspaceRoot } from "./paths";
@@ -12,7 +14,11 @@ async function main(): Promise<void> {
   dotenv.config({ path: join(getWorkspaceRoot(), ".env") });
 
   const appDb = openAppDb(getAppDbPath());
-  const service = createReadingRecommenderService({ appDb, booksDbPath: getBooksDbPath() });
+  const service = createReadingRecommenderService({
+    appDb,
+    booksDbPath: getBooksDbPath(),
+    embeddingProvider: createOpenAIEmbeddingProviderFromEnv(process.env)
+  });
   const api = await createApiServer(service);
   const vite = await createViteServer({ server: { host: "0.0.0.0", port: 5173 } });
 

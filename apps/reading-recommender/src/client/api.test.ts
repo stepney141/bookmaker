@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { promoteRecommendation, runRecommendation, skipRecommendation } from "./api";
+import { promoteRecommendation, runRecommendation, searchBooks, skipRecommendation } from "./api";
 
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
@@ -51,5 +51,24 @@ describe("client API", () => {
     expect(init?.method).toBe("POST");
     expect(init?.body).toBe(JSON.stringify({ bookmeterUrl: "https://bookmeter.com/books/1" }));
     expect(getHeaders(init).get("Content-Type")).toBe("application/json");
+  });
+
+  it("sends a search limit when one is provided", async () => {
+    const fetchMock = stubFetch();
+
+    await searchBooks("暗号", 20);
+
+    const request = fetchMock.mock.calls[0]?.[0];
+
+    if (typeof request !== "string") {
+      expect(request).toBeTypeOf("string");
+      return;
+    }
+
+    const url = new URL(request, "http://localhost");
+
+    expect(url.pathname).toBe("/api/search");
+    expect(url.searchParams.get("q")).toBe("暗号");
+    expect(url.searchParams.get("limit")).toBe("20");
   });
 });

@@ -1,8 +1,10 @@
-import fastifyStatic from "@fastify/static";
-import dotenv from "dotenv";
 import { join } from "node:path";
 
+import fastifyStatic from "@fastify/static";
+import dotenv from "dotenv";
+
 import { openAppDb } from "../db/appDb";
+import { createOpenAIEmbeddingProviderFromEnv } from "../embedding/openai";
 
 import { createApiServer } from "./api";
 import { getAppDbPath, getBooksDbPath, getClientDistPath, getWorkspaceRoot } from "./paths";
@@ -12,7 +14,11 @@ async function main(): Promise<void> {
   dotenv.config({ path: join(getWorkspaceRoot(), ".env") });
 
   const appDb = openAppDb(getAppDbPath());
-  const service = createReadingRecommenderService({ appDb, booksDbPath: getBooksDbPath() });
+  const service = createReadingRecommenderService({
+    appDb,
+    booksDbPath: getBooksDbPath(),
+    embeddingProvider: createOpenAIEmbeddingProviderFromEnv(process.env)
+  });
   const app = await createApiServer(service);
 
   await app.register(fastifyStatic, {

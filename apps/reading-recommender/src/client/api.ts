@@ -38,8 +38,13 @@ export function promoteRecommendation(bookmeterUrl: string): Promise<CurrentReco
   });
 }
 
-export function searchBooks(query: string): Promise<readonly SearchResult[]> {
+export function searchBooks(query: string, limit?: number): Promise<readonly SearchResult[]> {
   const params = new URLSearchParams({ q: query });
+
+  if (limit !== undefined) {
+    params.set("limit", String(limit));
+  }
+
   return requestJson<readonly SearchResult[]>(`/api/search?${params.toString()}`);
 }
 

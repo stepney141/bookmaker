@@ -39,6 +39,16 @@ export const APP_DB_MIGRATIONS: readonly string[] = [
     description,
     tokenize = 'trigram'
   );`,
+  `CREATE TABLE IF NOT EXISTS book_embedding (
+    bookmeter_url TEXT NOT NULL,
+    provider_id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    dimension INTEGER NOT NULL,
+    input_hash TEXT NOT NULL,
+    vector_blob BLOB NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (provider_id, model_id, dimension, bookmeter_url)
+  );`,
   `CREATE TABLE IF NOT EXISTS recommendation_cycle (
     id INTEGER PRIMARY KEY,
     status TEXT NOT NULL,

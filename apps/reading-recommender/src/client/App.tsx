@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { SEARCH_PAGE_SIZE, canLoadMoreSearchResults, nextSearchLimit } from "../shared/searchLimits";
+
 import {
   fetchCurrentRecommendation,
   fetchDiagnostics,
@@ -59,7 +61,7 @@ function BookPanel(input: {
         ))}
       </ul>
       <div className="book-panel__actions">
-        <a href={input.book.bookmeterUrl} target="_blank" rel="noreferrer">
+        <a className="button-link" href={input.book.bookmeterUrl} target="_blank" rel="noreferrer">
           Bookmeter
         </a>
         {input.actionLabel && input.onAction ? <button onClick={input.onAction}>{input.actionLabel}</button> : null}
@@ -72,8 +74,9 @@ function isActivationKey(event: KeyboardEvent<HTMLElement>): boolean {
   return event.key === "Enter" || event.key === " ";
 }
 
-function RelatedBookDialog(input: {
-  readonly book: CurrentRecommendation["relatedBooks"][number];
+function BookDetailDialog(input: {
+  readonly book: CurrentRecommendation["relatedBooks"][number] | SearchResult;
+  readonly titleId: string;
   readonly onClose: () => void;
 }): JSX.Element {
   return (
@@ -82,15 +85,19 @@ function RelatedBookDialog(input: {
         className="book-dialog"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="related-book-title"
+        aria-labelledby={input.titleId}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="book-panel__meta">
           <span>{listLabel(input.book)}</span>
           <span>score {input.book.score.toFixed(3)}</span>
         </div>
-        <h3 id="related-book-title">{input.book.title || "無題"}</h3>
+        <h3 id={input.titleId}>{input.book.title || "無題"}</h3>
         <p className="book-panel__author">{input.book.author || "著者不明"}</p>
+        <p>
+          {input.book.publisher || "出版社不明"} / {input.book.publishedDate || "刊行日不明"}
+        </p>
+        {input.book.isbnOrAsin ? <p>ISBN/ASIN {input.book.isbnOrAsin}</p> : null}
         <p>{input.book.description || "説明文はまだ取得されていません。"}</p>
         <ul>
           {input.book.reasons.map((reason) => (
@@ -98,7 +105,7 @@ function RelatedBookDialog(input: {
           ))}
         </ul>
         <div className="book-panel__actions">
-          <a href={input.book.bookmeterUrl} target="_blank" rel="noreferrer">
+          <a className="button-link" href={input.book.bookmeterUrl} target="_blank" rel="noreferrer">
             Bookmeter
           </a>
           <button type="button" onClick={input.onClose}>
@@ -184,7 +191,13 @@ function CurrentView(input: {
             </div>
             <div className="related-row__actions">
               <span>{book.score.toFixed(3)}</span>
-              <a href={book.bookmeterUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
+              <a
+                className="button-link"
+                href={book.bookmeterUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(event) => event.stopPropagation()}
+              >
                 Bookmeter
               </a>
             </div>
@@ -192,7 +205,11 @@ function CurrentView(input: {
         ))}
       </div>
       {selectedRelatedBook ? (
-        <RelatedBookDialog book={selectedRelatedBook} onClose={() => setSelectedRelatedBook(null)} />
+        <BookDetailDialog
+          book={selectedRelatedBook}
+          titleId="related-book-title"
+          onClose={() => setSelectedRelatedBook(null)}
+        />
       ) : null}
     </section>
   );
@@ -200,15 +217,37 @@ function CurrentView(input: {
 
 function SearchView(): JSX.Element {
   const [query, setQuery] = useState("");
+  const [searchedQuery, setSearchedQuery] = useState("");
+  const [requestedLimit, setRequestedLimit] = useState(SEARCH_PAGE_SIZE);
   const [results, setResults] = useState<readonly SearchResult[]>([]);
+  const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
   const [status, setStatus] = useState("");
+  const [searching, setSearching] = useState(false);
+
+  async function loadResults(searchQuery: string, limit: number): Promise<void> {
+    setSearching(true);
+    setStatus("検索中です。");
+    try {
+      const nextResults = await searchBooks(searchQuery, limit);
+      setRequestedLimit(limit);
+      setSearchedQuery(searchQuery);
+      setResults(nextResults);
+      setSelectedResult(null);
+      setStatus(nextResults.length === 0 ? "該当する書籍はありません。" : "");
+    } finally {
+      setSearching(false);
+    }
+  }
 
   async function submit(): Promise<void> {
-    setStatus("検索中です。");
-    const nextResults = await searchBooks(query);
-    setResults(nextResults);
-    setStatus(nextResults.length === 0 ? "該当する書籍はありません。" : "");
+    await loadResults(query, SEARCH_PAGE_SIZE);
   }
+
+  async function loadMore(): Promise<void> {
+    await loadResults(searchedQuery, nextSearchLimit(requestedLimit));
+  }
+
+  const canLoadMore = canLoadMoreSearchResults({ resultCount: results.length, currentLimit: requestedLimit });
 
   return (
     <section className="view">
@@ -225,12 +264,26 @@ function SearchView(): JSX.Element {
           onChange={(event) => setQuery(event.target.value)}
           placeholder="セキュリティに関連する本はどれ？"
         />
-        <button type="submit">検索</button>
+        <button type="submit" disabled={searching}>
+          検索
+        </button>
       </form>
       {status ? <p className="status">{status}</p> : null}
       <div className="result-list">
         {results.map((result) => (
-          <article key={result.bookmeterUrl} className="result-row">
+          <article
+            key={result.bookmeterUrl}
+            className="result-row"
+            role="button"
+            tabIndex={0}
+            onClick={() => setSelectedResult(result)}
+            onKeyDown={(event) => {
+              if (isActivationKey(event)) {
+                event.preventDefault();
+                setSelectedResult(result);
+              }
+            }}
+          >
             <span>{result.rank}</span>
             <div>
               <h3>{result.title}</h3>
@@ -243,6 +296,16 @@ function SearchView(): JSX.Element {
           </article>
         ))}
       </div>
+      {selectedResult ? (
+        <BookDetailDialog book={selectedResult} titleId="search-result-title" onClose={() => setSelectedResult(null)} />
+      ) : null}
+      {canLoadMore ? (
+        <div className="load-more">
+          <button type="button" onClick={() => void loadMore()} disabled={searching}>
+            さらに読み込む
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
