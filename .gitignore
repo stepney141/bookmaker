@@ -23,6 +23,7 @@ deviantart_api/json
 
 *.sqlite-shm
 *.sqlite-wal
+data/reading-recommender.sqlite
 
 # Python-generated files
 __pycache__/

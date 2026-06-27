@@ -9,6 +9,7 @@ This is a monorepo. TypeScript packages are managed with **pnpm workspaces** (`a
 Apps:
 
 - **`@bookmaker/bookmeter`** (`apps/bookmeter`) — CLI that scrapes Bookmeter wish/stacked lists, enriches them via bibliographic APIs and library-holding lookups, and writes `data/books.sqlite` plus CSVs. It is the **generator** of the shared SQLite. TypeScript-only, so it is excluded from the uv workspace. See `apps/bookmeter/README.md` for modes, flags, and architecture.
+- **`@bookmaker/reading-recommender`** (`apps/reading-recommender`) — Local SPA + Fastify app that reads the shared SQLite read-only, recommends a weekly book, shows related books, and searches wish/stacked books. It stores derived app state in `data/reading-recommender.sqlite`, not in the shared DB. TypeScript-only for now. See `apps/reading-recommender/README.md` for run modes, API routes, and architecture.
 
 Toolchain is pinned via Volta: Node 25.8.2, pnpm 11.9.0. `.env` lives at the monorepo root; both `run_tasks.sh` and the apps load it from there, so credentials are configured once for the whole repo.
 
@@ -17,6 +18,7 @@ Toolchain is pinned via Volta: Node 25.8.2, pnpm 11.9.0. `.env` lives at the mon
 The one cross-app artifact is the SQLite database at `data/books.sqlite`. This is the integration boundary between apps:
 
 - `bookmeter` is the **only writer**. Every other (current or future) project opens it **read-only**: `new Database(path, { readonly: true, fileMustExist: true })` in TypeScript, `sqlite3.connect("file:...?mode=ro", uri=True)` in Python.
+- `reading-recommender` writes only its own derived state DB at `data/reading-recommender.sqlite` by default. It may cache recommendation cycles, FTS indexes, settings, embeddings, and push tokens there, but it must never add columns, tables, or rows to `data/books.sqlite`.
 - The DB runs in WAL mode, so one writer plus many readers is safe.
 - Resolve the path relative to the workspace root (`data/books.sqlite`) and allow `BOOKS_DB_PATH` to override it; do not hard-code absolute paths.
 - The schema of record is `apps/bookmeter/src/db/schema.ts`. Do not try to share schema definitions across languages — integrate only through the DB, and have each reader keep its own read-only model.
@@ -33,6 +35,7 @@ pnpm lint                    # eslint over the whole repo (single shared config)
 pnpm lint:fix
 pnpm format                  # prettier --write .
 pnpm -r test                 # tests across all workspaces
+pnpm --filter @bookmaker/reading-recommender run build
 ```
 
 Target a single workspace with `pnpm --filter @bookmaker/<name> run <script>` (or `uv run --package <name> <cmd>` for Python). Per-app run/test commands live in that app's README and `package.json`.
@@ -45,7 +48,7 @@ Each app is a workspace member living in `apps/<name>/`. Register it with the pa
 
 ### TypeScript app (pnpm workspace)
 
-1. Create `apps/<name>/package.json` with `"name": "@bookmaker/<name>"` and `"private": true`. Put run scripts under `scripts` (this repo runs sources directly via `tsx`, so there is no build step).
+1. Create `apps/<name>/package.json` with `"name": "@bookmaker/<name>"` and `"private": true`. Put run scripts under `scripts`. CLI apps may run sources directly via `tsx`; browser/server apps may also have an explicit build step, as `reading-recommender` does with Vite plus `tsc`.
 2. Add `apps/<name>/tsconfig.json` that inherits the shared compiler options:
    ```jsonc
    { "extends": "../../tsconfig.base.json", "compilerOptions": { "outDir": "dist" } }
