@@ -40,6 +40,60 @@ PORT=4174 pnpm --filter @bookmaker/reading-recommender run start
 
 > 共有 SQLite はモノレポルートの `data/books.sqlite` に置かれる。`bookmeter` が唯一の writer で、このアプリは `new Database(path, { readonly: true, fileMustExist: true })` で読み取り専用に開く。パスは `BOOKS_DB_PATH` で上書きできる。
 
+### Docker Compose 本番運用
+
+Docker Compose で常駐させる場合は、モノレポルートの `compose.yaml` を使う。compose service は source DB を `/source/books.sqlite` として読み取り専用で参照し、app DB を `/state/reading-recommender.sqlite` に保存する。これにより、`bookmeter` が生成する `data/books.sqlite` と、推薦履歴を保存する app DB の書き込み権限を分離できる。初回だけ既存の app DB を state directory に移すと、現在の推薦履歴と設定を引き継げる。
+
+```bash
+mkdir -p data/reading-recommender backups/reading-recommender
+if [ -f data/reading-recommender.sqlite ] && [ ! -f data/reading-recommender/reading-recommender.sqlite ]; then
+  cp data/reading-recommender.sqlite data/reading-recommender/reading-recommender.sqlite
+fi
+
+docker compose build reading-recommender
+docker compose up -d reading-recommender
+curl http://127.0.0.1:4174/api/health
+```
+
+既定では host 側の `127.0.0.1:4174` だけに公開する。LAN へ直接公開する場合は `READING_RECOMMENDER_BIND_ADDRESS=0.0.0.0` を指定するが、現時点では更新系 API に認証がないため、インターネットには直接公開しない。Tailscale Serve、Caddy、Nginx などを前段に置く場合も、backend は `127.0.0.1:4174` に閉じる構成を基本にする。
+
+```bash
+READING_RECOMMENDER_BIND_ADDRESS=0.0.0.0 docker compose up -d reading-recommender
+```
+
+Docker Compose は `apps/reading-recommender/.env` を `env_file` として読む。container 内では `WORKSPACE_ROOT=/app`、`BOOKS_DB_PATH=/source/books.sqlite`、`READING_RECOMMENDER_DB_PATH=/state/reading-recommender.sqlite` が固定される。
+
+```bash
+cp apps/reading-recommender/.env.example apps/reading-recommender/.env
+$EDITOR apps/reading-recommender/.env
+docker compose up -d reading-recommender
+```
+
+### SQLite バックアップ
+
+SQLite backup は app service とは別の one-shot service として実行する。`sqlite-backup` service は SQLite の `.backup` を使って、稼働中の app DB から一貫した snapshot を `backups/reading-recommender/` に作る。既定では `books.sqlite` も同じ時刻の backup に含めるため、推薦状態と source DB を同じ世代で復旧できる。source DB は WAL mode なので、backup service だけは SQLite の lock file 処理を許可するために `data/` を書き込み可能で mount する。
+
+```bash
+docker compose --profile backup build sqlite-backup
+docker compose --profile backup run --rm sqlite-backup
+ls -lh backups/reading-recommender/
+```
+
+定期実行は host 側の cron または systemd timer から Compose service を起動する。cron で毎日 03:20 に実行する場合は、次の 1 行を crontab に入れる。保持期間は既定で 30 日であり、`BACKUP_RETENTION_DAYS=90` のように変更できる。1 つの DB backup は既定で 300 秒を上限とし、`SQLITE_BACKUP_TIMEOUT_SECONDS=600` のように変更できる。
+
+```cron
+20 3 * * * cd /home/stepney141/bookmaker && docker compose --profile backup run --rm sqlite-backup >> logs/reading-recommender-backup.log 2>&1
+```
+
+復旧するときは、app service を止めてから backup file を state directory に戻す。source DB も同時に戻す場合は、`books-*.sqlite` を `data/books.sqlite` に戻してから app service を起動する。source DB を戻さない場合でも app DB は復旧できるが、推薦履歴が参照していた source snapshot と現在の `books.sqlite` がずれる可能性がある。
+
+```bash
+docker compose stop reading-recommender
+cp data/reading-recommender/reading-recommender.sqlite data/reading-recommender/reading-recommender.sqlite.before-restore
+cp backups/reading-recommender/reading-recommender-YYYYmmddTHHMMSSZ.sqlite data/reading-recommender/reading-recommender.sqlite
+docker compose up -d reading-recommender
+```
+
 ### API
 
 | Endpoint | 説明 |
@@ -153,7 +207,7 @@ apps/reading-recommender/
 
 ## 環境変数
 
-`.env` はモノレポルートに置く。現在使う環境変数は次のとおりである。
+`apps/reading-recommender/.env` に必要な環境変数を置く。書式は `apps/reading-recommender/.env.example` を参照する。現在使う環境変数は次のとおりである。
 
 | 変数 | 必須 | 説明 |
 |---|---:|---|

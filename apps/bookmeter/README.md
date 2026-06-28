@@ -150,10 +150,12 @@ apps/bookmeter/
 
 ## 環境変数
 
-`.env` ファイル（モノレポルートに配置）に以下のAPIキー・認証情報を設定する必要がある:
+`apps/bookmeter/.env` に以下の API キー・認証情報を設定する必要がある。書式は `apps/bookmeter/.env.example` を参照する。
 
+- `BOOKMETER_ACCOUNT`, `BOOKMETER_PASSWORD` — 読書メーターのログイン情報
 - `CINII_API_APPID` — CiNii Books APIのアプリケーションID
 - `GOOGLE_BOOKS_API_KEY` — Google Books APIキー
 - `ISBNDB_API_KEY` — ISBNdb APIキー
 - `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`, `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_APP_ID` — Firebase設定
+- `DISCORD_WEBHOOK_URL`, `DISCORD_USER_ID_TO_MENTION`（任意） — `run_tasks.sh` 失敗時の通知先
 - `BOOKS_DB_PATH`（任意） — 共有 SQLite のパス上書き（既定: モノレポルートの `data/books.sqlite`）

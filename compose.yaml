@@ -1,0 +1,69 @@
+name: bookmaker-reading-recommender
+
+services:
+  reading-recommender:
+    build:
+      context: .
+      dockerfile: apps/reading-recommender/Dockerfile
+      args:
+        NODE_VERSION: ${NODE_VERSION:-25.8.2}
+    image: bookmaker/reading-recommender:local
+    init: true
+    restart: unless-stopped
+    user: "${BOOKMAKER_UID:-1000}:${BOOKMAKER_GID:-1000}"
+    env_file:
+      - path: ./apps/reading-recommender/.env
+        required: false
+    environment:
+      NODE_ENV: production
+      TZ: ${TZ:-Asia/Tokyo}
+      WORKSPACE_ROOT: /app
+      PORT: "4174"
+      BOOKS_DB_PATH: /source/books.sqlite
+      READING_RECOMMENDER_DB_PATH: /state/reading-recommender.sqlite
+    ports:
+      - "${READING_RECOMMENDER_BIND_ADDRESS:-127.0.0.1}:${READING_RECOMMENDER_HOST_PORT:-4174}:4174"
+    volumes:
+      - type: bind
+        source: ./data
+        target: /source
+        read_only: true
+      - type: bind
+        source: ./data/reading-recommender
+        target: /state
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:4174/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  sqlite-backup:
+    build:
+      context: .
+      dockerfile: docker/sqlite-backup/Dockerfile
+    image: bookmaker/sqlite-backup:local
+    profiles:
+      - backup
+    user: "${BOOKMAKER_UID:-1000}:${BOOKMAKER_GID:-1000}"
+    environment:
+      APP_DB_PATH: /state/reading-recommender.sqlite
+      SOURCE_DB_PATH: /source/books.sqlite
+      BACKUP_DIR: /backups
+      BACKUP_SOURCE_DB: ${BACKUP_SOURCE_DB:-1}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      SQLITE_BACKUP_TIMEOUT_SECONDS: ${SQLITE_BACKUP_TIMEOUT_SECONDS:-300}
+    volumes:
+      - type: bind
+        source: ./data
+        target: /source
+      - type: bind
+        source: ./data/reading-recommender
+        target: /state
+        read_only: true
+      - type: bind
+        source: ./backups/reading-recommender
+        target: /backups

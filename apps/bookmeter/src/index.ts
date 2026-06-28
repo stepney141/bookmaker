@@ -32,8 +32,7 @@ import { launchBookmeterBrowser } from "./scrapers/browser";
 
 import type { MainFuncOption } from "./application/executionMode";
 
-// .env はモノレポルートに置く（run_tasks.sh もルートの .env を参照する）。
-config({ path: path.join(__dirname, "../../../.env") });
+config({ path: path.join(__dirname, "../.env") });
 
 const DB_FILE = DB_PATH;
 const DB_STORAGE_PATH = "bookmeter/books.sqlite";

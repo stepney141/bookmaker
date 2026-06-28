@@ -22,6 +22,10 @@ export function getBooksDbPath(): string {
   return process.env.BOOKS_DB_PATH ? resolve(process.env.BOOKS_DB_PATH) : join(getWorkspaceRoot(), "data/books.sqlite");
 }
 
+export function getEnvPath(): string {
+  return join(getWorkspaceRoot(), "apps/reading-recommender/.env");
+}
+
 export function getAppDbPath(): string {
   return process.env.READING_RECOMMENDER_DB_PATH
     ? resolve(process.env.READING_RECOMMENDER_DB_PATH)

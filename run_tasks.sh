@@ -5,9 +5,9 @@ set -Euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
-if [[ -f .env ]]; then
+if [[ -f apps/bookmeter/.env ]]; then
   set -a
-  source .env
+  source apps/bookmeter/.env
   set +a
 fi
 

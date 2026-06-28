@@ -11,7 +11,7 @@ Apps:
 - **`@bookmaker/bookmeter`** (`apps/bookmeter`) — CLI that scrapes Bookmeter wish/stacked lists, enriches them via bibliographic APIs and library-holding lookups, and writes `data/books.sqlite` plus CSVs. It is the **generator** of the shared SQLite. TypeScript-only, so it is excluded from the uv workspace. See `apps/bookmeter/README.md` for modes, flags, and architecture.
 - **`@bookmaker/reading-recommender`** (`apps/reading-recommender`) — Local SPA + Fastify app that reads the shared SQLite read-only, recommends a weekly book, shows related books, and searches wish/stacked books. It stores derived app state in `data/reading-recommender.sqlite`, not in the shared DB. TypeScript-only for now. See `apps/reading-recommender/README.md` for run modes, API routes, and architecture.
 
-Toolchain is pinned via Volta: Node 25.8.2, pnpm 11.9.0. `.env` lives at the monorepo root; both `run_tasks.sh` and the apps load it from there, so credentials are configured once for the whole repo.
+Toolchain is pinned via Volta: Node 25.8.2, pnpm 11.9.0. Credentials live in each app's `.env`: `apps/bookmeter/.env` for the scraper/updater and `apps/reading-recommender/.env` for the local web app.
 
 ## The shared SQLite contract
 
