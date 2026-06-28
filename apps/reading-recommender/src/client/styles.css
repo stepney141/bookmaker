@@ -87,34 +87,34 @@ button:disabled {
   opacity: 0.5;
 }
 
+/* Outbound catalog links read as color-coded spine labels: filled tab, heavy keyline */
 .button-link--bookmeter {
-  border-color: var(--bookmeter);
-  color: var(--bookmeter);
-}
-
-.button-link--bookmeter:hover {
-  color: var(--card);
-  background: var(--bookmeter);
+  --brand: var(--bookmeter);
 }
 
 .button-link--utokyo {
-  border-color: var(--utokyo);
-  color: var(--utokyo);
-}
-
-.button-link--utokyo:hover {
-  color: #fff;
-  background: var(--utokyo);
+  --brand: var(--utokyo);
 }
 
 .button-link--sophia {
-  border-color: var(--sophia);
-  color: var(--sophia);
+  --brand: var(--sophia);
 }
 
+.button-link--bookmeter,
+.button-link--utokyo,
+.button-link--sophia {
+  border: 2px solid var(--brand);
+  border-bottom-width: 3px;
+  color: color-mix(in srgb, var(--brand) 88%, var(--ink));
+  background: color-mix(in srgb, var(--brand) 14%, var(--card));
+  font-weight: 700;
+}
+
+.button-link--bookmeter:hover,
+.button-link--utokyo:hover,
 .button-link--sophia:hover {
-  color: #fff;
-  background: var(--sophia);
+  color: var(--card);
+  background: var(--brand);
 }
 
 button:focus-visible,

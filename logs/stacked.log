@@ -1,7 +1,50 @@
 $ tsx src/index.ts full stacked
 Execution plan => mode=full, target=stacked, forceRefresh=false, scrape=remote(login=true), phases=compare -> fetchBiblio -> crawlDescriptions -> persist -> exportCsv -> uploadDb
 Loading previous book list from SQLite database (table: stacked)
-Loaded 1823 cached books from SQLite.
-/home/stepney141/bookmaker/apps/bookmeter:
-[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @bookmaker/bookmeter@1.0.0 stacked: `tsx src/index.ts full stacked`
-Exit status 130
+Loaded 1826 cached books from SQLite.
+Login Completed!
+Scraping Started!
+scanning page 1
+https://bookmeter.com/books/21499741 4815617945 AWS認定資格試験テキスト　AWS認定ソリューションアーキテクト - アソシエイト　改訂第3版 (ＡＷＳ認定資格試験テキスト) 佐々木 拓郎,林 晋一郎,金澤 圭,小西秀和
+scanning page 2
+scanning page 3
+scanning page 4
+scanning page 5
+scanning page 6
+scanning page 7
+scanning page 8
+scanning page 9
+scanning page 10
+scanning page 11
+scanning page 12
+scanning page 13
+scanning page 14
+scanning page 15
+scanning page 16
+scanning page 17
+scanning page 18
+scanning page 19
+Detected some diffs between the local and remote.
+Fetching bibliographic information
+Completed fetching the list of ja books in Sophia Univ. Math Lib
+Completed fetching the list of ja books in Sophia Univ. Math Lib
+Completed creating a list of ISBNs of ja books in Sophia Univ. Math Lib
+Searching Completed
+Crawling Kinokuniya for book descriptions
+Loaded 313 existing descriptions from database.
+Extracted description length: 767 characters
+Successfully fetched description for ISBN 4815617945.
+No book found with isbn_or_asin: 4815617945
+Saving data to SQLite database
+Synchronizing book list with database table: stacked
+Re-inserting 364 books into stacked in remote order...
+Synchronization complete for stacked.
+Generating CSV from SQLite database
+Exporting columns [bookmeter_url, isbn_or_asin, book_title, author, publisher, published_date] from table stacked to CSV file ./csv/bookmeter_stacked_books.csv
+Fetched 364 rows from stacked.
+Successfully exported 364 books to ./csv/bookmeter_stacked_books.csv
+Finished writing ./csv/bookmeter_stacked_books.csv
+Skipping library CSV reports for non-wish target.
+Uploading SQLite database to Firebase Storage...
+Database uploaded successfully to bookmeter/books.sqlite
+The processs took 110 seconds
