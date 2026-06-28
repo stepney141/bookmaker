@@ -12,8 +12,20 @@ type EmbeddingRow = {
   readonly vector_blob: Buffer;
 };
 
+const EMBEDDING_BATCH_SIZE = 64;
+
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+function chunkDocuments<T>(items: readonly T[], size: number): readonly (readonly T[])[] {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
 }
 
 function providerParams(provider: EmbeddingProvider): readonly [string, string, number] {
@@ -91,13 +103,15 @@ export async function ensureBookEmbeddings(input: {
     return cached;
   }
 
-  const vectors = await input.provider.embed({ texts: missing.map((document) => document.text), kind: "document" });
+  for (const batch of chunkDocuments(missing, EMBEDDING_BATCH_SIZE)) {
+    const vectors = await input.provider.embed({ texts: batch.map((document) => document.text), kind: "document" });
 
-  for (const [index, document] of missing.entries()) {
-    const vector = vectors[index];
+    for (const [index, document] of batch.entries()) {
+      const vector = vectors[index];
 
-    if (vector) {
-      saveEmbedding({ db: input.db, provider: input.provider, document, vector });
+      if (vector) {
+        saveEmbedding({ db: input.db, provider: input.provider, document, vector });
+      }
     }
   }
 

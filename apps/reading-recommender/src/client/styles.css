@@ -27,7 +27,8 @@ select {
 }
 
 button,
-.button-link {
+.button-link,
+.nav-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -45,7 +46,9 @@ button,
 
 button.active,
 button:hover,
-.button-link:hover {
+.button-link:hover,
+.nav-link.active,
+.nav-link:hover {
   color: #ffffff;
   background: #2f5b67;
 }
@@ -180,7 +183,8 @@ nav {
 }
 
 .book-panel {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 

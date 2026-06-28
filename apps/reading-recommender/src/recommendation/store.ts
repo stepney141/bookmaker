@@ -45,6 +45,31 @@ export function getActiveCycleId(db: Database.Database): number | null {
   return row?.id ?? null;
 }
 
+export function getLatestScheduledFor(db: Database.Database): string | null {
+  const row = db
+    .prepare(
+      `SELECT scheduled_for
+       FROM recommendation_cycle
+       WHERE reason = ? AND scheduled_for IS NOT NULL
+       ORDER BY scheduled_for DESC
+       LIMIT 1`
+    )
+    .get("scheduled") as { readonly scheduled_for: string } | undefined;
+  return row?.scheduled_for ?? null;
+}
+
+export function hasScheduledCycle(db: Database.Database, scheduledFor: string): boolean {
+  const row = db
+    .prepare(
+      `SELECT id
+       FROM recommendation_cycle
+       WHERE reason = ? AND scheduled_for = ?
+       LIMIT 1`
+    )
+    .get("scheduled", scheduledFor) as { readonly id: number } | undefined;
+  return Boolean(row);
+}
+
 export function getCurrentRecommendation(input: {
   readonly db: Database.Database;
   readonly relatedBooks: readonly RelatedBook[];
@@ -97,12 +122,13 @@ export function saveRecommendationSelection(input: {
   readonly db: Database.Database;
   readonly reason: string;
   readonly selection: RecommendationSelection;
+  readonly scheduledFor?: string | null;
 }): number {
   const transaction = input.db.transaction(() => {
     input.db.prepare("UPDATE recommendation_cycle SET status = ? WHERE status = ?").run("superseded", "active");
     const cycle = input.db
       .prepare("INSERT INTO recommendation_cycle (status, reason, scheduled_for, created_at, activated_at) VALUES (?, ?, ?, ?, ?)")
-      .run("active", input.reason, null, nowIso(), nowIso());
+      .run("active", input.reason, input.scheduledFor ?? null, nowIso(), nowIso());
     const cycleId = Number(cycle.lastInsertRowid);
     const items = [
       { slot: "primary" as const, rank: 1, book: input.selection.primary },

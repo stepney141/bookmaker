@@ -16,14 +16,19 @@ function createService(): {
     search,
     service: {
       sync() {},
-      run: () => null,
-      current: () => null,
-      skip: () => null,
-      promote: () => null,
+      run: () => Promise.resolve(null),
+      runScheduled: () => Promise.resolve(null),
+      runIfSourceChanged: () => Promise.resolve({ changed: false, current: null }),
+      current: () => Promise.resolve(null),
+      skip: () => Promise.resolve(null),
+      promote: () => Promise.resolve(null),
       search,
       diagnostics: () => [],
       getSettings: () => DEFAULT_SETTINGS,
+      getLatestScheduledFor: () => null,
       updateSettings: (settings) => settings,
+      onSettingsChanged: () => () => {},
+      onClose: () => () => {},
       close() {}
     }
   };

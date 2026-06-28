@@ -53,4 +53,56 @@ describe("scoreBooks", () => {
 
     expect(scored[0]?.bookmeterUrl).toBe("stacked");
   });
+
+  it("prioritizes the first named part within the same series", () => {
+    const scored = scoreBooks(
+      [
+        snapshot({ bookmeterUrl: "lower", title: "数学講義 下巻", remoteRank: 100 }),
+        snapshot({ bookmeterUrl: "middle", title: "数学講義 中巻", remoteRank: 50 }),
+        snapshot({ bookmeterUrl: "upper", title: "数学講義 上巻", remoteRank: 1 })
+      ],
+      DEFAULT_SETTINGS
+    );
+
+    expect(scored.map((book) => book.bookmeterUrl)).toEqual(["upper", "middle", "lower"]);
+  });
+
+  it("prioritizes volume 1 within the same numbered series", () => {
+    const scored = scoreBooks(
+      [
+        snapshot({ bookmeterUrl: "volume-2", title: "解析入門 2巻", remoteRank: 100 }),
+        snapshot({ bookmeterUrl: "volume-1", title: "解析入門 1巻", remoteRank: 1 })
+      ],
+      DEFAULT_SETTINGS
+    );
+
+    expect(scored.map((book) => book.bookmeterUrl)).toEqual(["volume-1", "volume-2"]);
+  });
+
+  it("detects a named part before a trailing publication note", () => {
+    const scored = scoreBooks(
+      [
+        snapshot({ bookmeterUrl: "lower", title: "美味礼讃 下 (岩波文庫)", remoteRank: 100 }),
+        snapshot({ bookmeterUrl: "upper", title: "美味礼讃　上", remoteRank: 1 })
+      ],
+      DEFAULT_SETTINGS
+    );
+
+    expect(scored.map((book) => book.bookmeterUrl)).toEqual(["upper", "lower"]);
+  });
+
+  it("keeps the series-order reason on the earliest volume", () => {
+    const scored = scoreBooks(
+      [
+        snapshot({ bookmeterUrl: "volume-2", title: "代数学 第2巻", remoteRank: 10 }),
+        snapshot({ bookmeterUrl: "volume-1", title: "代数学 第1巻", remoteRank: 1 })
+      ],
+      DEFAULT_SETTINGS
+    );
+
+    expect(scored[0]?.scoreBreakdown.find((item) => item.id === "seriesOrder")).toMatchObject({
+      value: 1,
+      explanation: "同一シリーズ内で最も若い巻です。"
+    });
+  });
 });

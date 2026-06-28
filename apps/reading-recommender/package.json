@@ -14,10 +14,13 @@
     "@fastify/cors": "^11.0.0",
     "@fastify/static": "^8.0.0",
     "better-sqlite3": "^12.8.0",
+    "chokidar": "^5.0.0",
     "dotenv": "^16.3.1",
     "fastify": "^5.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-router": "^8.0.1",
+    "temporal-polyfill-lite": "^0.4.1",
     "zod": "^3.25.0"
   },
   "devDependencies": {
@@ -30,5 +33,8 @@
     "typescript": "^6.0.2",
     "vite": "^7.0.0",
     "vitest": "^3.1.2"
+  },
+  "volta": {
+    "node": "25.8.2"
   }
 }

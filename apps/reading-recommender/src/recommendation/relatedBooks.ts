@@ -1,5 +1,18 @@
 import type { BookSnapshot, RelatedBook } from "../shared/types";
 
+const LEGACY_WEIGHTS = {
+  lexical: 0.85,
+  sameAuthor: 0.1,
+  samePublisher: 0.05
+} as const;
+
+const SEMANTIC_WEIGHTS = {
+  semantic: 0.45,
+  lexical: 0.35,
+  sameAuthor: 0.12,
+  samePublisher: 0.08
+} as const;
+
 function tokenize(text: string): readonly string[] {
   return text
     .toLowerCase()
@@ -20,8 +33,60 @@ function lexicalSimilarity(a: BookSnapshot, b: BookSnapshot): number {
   return intersection / union;
 }
 
-function buildReasons(primary: BookSnapshot, book: BookSnapshot, lexicalScore: number): readonly string[] {
+function optionalPositive(value: number | undefined): number | null {
+  return value !== undefined && value > 0 ? value : null;
+}
+
+function sameAuthorScore(primary: BookSnapshot, book: BookSnapshot): number {
+  return primary.author && primary.author === book.author ? 1 : 0;
+}
+
+function samePublisherScore(primary: BookSnapshot, book: BookSnapshot): number {
+  return primary.publisher && primary.publisher === book.publisher ? 1 : 0;
+}
+
+function weightedSemanticScore(input: {
+  readonly semanticScore: number | null;
+  readonly lexicalScore: number;
+  readonly sameAuthor: number;
+  readonly samePublisher: number;
+}): number {
+  return (
+    (input.semanticScore ?? 0) * SEMANTIC_WEIGHTS.semantic +
+    input.lexicalScore * SEMANTIC_WEIGHTS.lexical +
+    input.sameAuthor * SEMANTIC_WEIGHTS.sameAuthor +
+    input.samePublisher * SEMANTIC_WEIGHTS.samePublisher
+  );
+}
+
+function relatedScore(input: {
+  readonly semanticScoresByUrl: ReadonlyMap<string, number> | undefined;
+  readonly bookmeterUrl: string;
+  readonly lexicalScore: number;
+  readonly sameAuthor: number;
+  readonly samePublisher: number;
+}): number {
+  const semanticScore = optionalPositive(input.semanticScoresByUrl?.get(input.bookmeterUrl));
+
+  if (!input.semanticScoresByUrl) {
+    return (
+      input.lexicalScore * LEGACY_WEIGHTS.lexical +
+      input.sameAuthor * LEGACY_WEIGHTS.sameAuthor +
+      input.samePublisher * LEGACY_WEIGHTS.samePublisher
+    );
+  }
+
+  return weightedSemanticScore({
+    semanticScore,
+    lexicalScore: input.lexicalScore,
+    sameAuthor: input.sameAuthor,
+    samePublisher: input.samePublisher
+  });
+}
+
+function buildReasons(primary: BookSnapshot, book: BookSnapshot, lexicalScore: number, semanticScore: number | null): readonly string[] {
   const reasons = [
+    semanticScore !== null && semanticScore >= 0.65 ? "説明文の意味が近い候補です。" : null,
     primary.author && primary.author === book.author ? "同じ著者です。" : null,
     primary.publisher && primary.publisher === book.publisher ? "同じ出版社です。" : null,
     lexicalScore > 0 ? "タイトルまたは説明文に共通する語があります。" : null,
@@ -35,6 +100,7 @@ export function findRelatedBooks(input: {
   readonly primary: BookSnapshot | null;
   readonly candidates: readonly BookSnapshot[];
   readonly limit: number;
+  readonly semanticScoresByUrl?: ReadonlyMap<string, number>;
 }): readonly RelatedBook[] {
   if (!input.primary) {
     return [];
@@ -44,14 +110,21 @@ export function findRelatedBooks(input: {
     .filter((candidate) => candidate.bookmeterUrl !== input.primary?.bookmeterUrl)
     .map((candidate) => {
       const lexicalScore = lexicalSimilarity(input.primary as BookSnapshot, candidate);
-      const sameAuthor = input.primary?.author && input.primary.author === candidate.author ? 0.1 : 0;
-      const samePublisher = input.primary?.publisher && input.primary.publisher === candidate.publisher ? 0.05 : 0;
-      const score = lexicalScore * 0.85 + sameAuthor + samePublisher;
+      const sameAuthor = sameAuthorScore(input.primary as BookSnapshot, candidate);
+      const samePublisher = samePublisherScore(input.primary as BookSnapshot, candidate);
+      const semanticScore = optionalPositive(input.semanticScoresByUrl?.get(candidate.bookmeterUrl));
+      const score = relatedScore({
+        semanticScoresByUrl: input.semanticScoresByUrl,
+        bookmeterUrl: candidate.bookmeterUrl,
+        lexicalScore,
+        sameAuthor,
+        samePublisher
+      });
 
       return {
         ...candidate,
         score,
-        reasons: buildReasons(input.primary as BookSnapshot, candidate, lexicalScore)
+        reasons: buildReasons(input.primary as BookSnapshot, candidate, lexicalScore, semanticScore)
       };
     })
     .filter((book) => book.score > 0)

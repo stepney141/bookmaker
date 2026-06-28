@@ -1,7 +1,7 @@
 
 import { getCurrentSnapshots, insertRecommendationEvent } from "../db/appDb";
 
-import { scoreBooks, type ScoredBook } from "./scoring";
+import { findEarlierSeriesCandidate, scoreBooks, type ScoredBook } from "./scoring";
 import { getActiveCycleId, saveRecommendationSelection, type RecommendationSelection } from "./store";
 
 import type { AppSettings, BookSnapshot, RecommendationReason } from "../shared/types";
@@ -64,6 +64,7 @@ export function runRecommendation(input: {
   readonly db: Database.Database;
   readonly settings: AppSettings;
   readonly reason: RecommendationReason;
+  readonly scheduledFor?: string | null;
 }): number | null {
   const currentSnapshots = getCurrentSnapshots(input.db);
   const scoredBooks = scoreBooks(currentSnapshots, input.settings);
@@ -71,17 +72,40 @@ export function runRecommendation(input: {
   const activeCycleId = getActiveCycleId(input.db);
   const primaryUrl = existingItems.find((item) => item.slot === "primary")?.bookmeter_url ?? null;
   const activePrimary = findByUrl(scoredBooks, primaryUrl);
+  const earlierSeriesPrimary = activePrimary
+    ? findEarlierSeriesCandidate({ book: activePrimary, candidates: scoredBooks })
+    : null;
 
-  if (activePrimary) {
+  if (activePrimary && !earlierSeriesPrimary) {
     const selection = chooseSelectionWithPrimary({
       primary: activePrimary,
       scoredBooks,
       secondaryCount: input.settings.secondaryCount
     });
-    return saveRecommendationSelection({ db: input.db, reason: input.reason, selection });
+    return saveRecommendationSelection({ db: input.db, reason: input.reason, selection, scheduledFor: input.scheduledFor });
   }
 
-  if (primaryUrl && activeCycleId) {
+  if (activePrimary && earlierSeriesPrimary && activeCycleId) {
+    insertRecommendationEvent({
+      db: input.db,
+      eventType: "primary_replaced_by_series_predecessor",
+      bookmeterUrl: activePrimary.bookmeterUrl,
+      cycleId: activeCycleId,
+      reason: input.reason,
+      payload: {
+        previousPrimary: activePrimary.bookmeterUrl,
+        replacementPrimary: earlierSeriesPrimary.bookmeterUrl
+      }
+    });
+    const selection = chooseSelectionWithPrimary({
+      primary: earlierSeriesPrimary,
+      scoredBooks,
+      secondaryCount: input.settings.secondaryCount
+    });
+    return saveRecommendationSelection({ db: input.db, reason: input.reason, selection, scheduledFor: input.scheduledFor });
+  }
+
+  if (primaryUrl && !activePrimary && activeCycleId) {
     insertRecommendationEvent({
       db: input.db,
       eventType: "primary_completed_by_db_absence",
@@ -104,7 +128,7 @@ export function runRecommendation(input: {
     return null;
   }
 
-  return saveRecommendationSelection({ db: input.db, reason: input.reason, selection });
+  return saveRecommendationSelection({ db: input.db, reason: input.reason, selection, scheduledFor: input.scheduledFor });
 }
 
 export function skipRecommendation(input: {

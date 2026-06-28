@@ -16,9 +16,9 @@ function createTempDir(): string {
   return mkdtempSync(join(tmpdir(), "reading-recommender-embedding-"));
 }
 
-function sourceBook(description: string): SourceBook {
+function sourceBook(description: string, index = 1): SourceBook {
   return {
-    bookmeterUrl: "https://bookmeter.example/security",
+    bookmeterUrl: `https://bookmeter.example/security-${index}`,
     isbnOrAsin: "9784000000011",
     title: "情報セキュリティの基礎",
     author: "山田太郎",
@@ -31,23 +31,29 @@ function sourceBook(description: string): SourceBook {
     utokyoLibraryStatus: "unknown",
     sophiaOpacUrl: "",
     utokyoOpacUrl: "",
-    wishRowid: 1,
+    wishRowid: index,
     stackedRowid: null,
-    remoteRank: 1,
+    remoteRank: index,
     remoteRankSource: "wish"
   };
 }
 
-function mockProvider(): EmbeddingProvider & { readonly calls: () => number } {
+function mockProvider(): EmbeddingProvider & {
+  readonly calls: () => number;
+  readonly batchSizes: () => readonly number[];
+} {
   let calls = 0;
+  const batchSizes: number[] = [];
 
   return {
     providerId: "mock",
     modelId: "mock-model",
     dimension: 3,
     calls: () => calls,
+    batchSizes: () => batchSizes,
     embed(input) {
       calls += 1;
+      batchSizes.push(input.texts.length);
       return Promise.resolve(input.texts.map(() => Float32Array.from([1, 0, 0])));
     }
   };
@@ -78,8 +84,8 @@ describe("ensureBookEmbeddings", () => {
       });
 
       expect(provider.calls()).toBe(1);
-      expect(first.get("https://bookmeter.example/security")?.vector[0]).toBe(1);
-      expect(second.get("https://bookmeter.example/security")?.vector[0]).toBe(1);
+      expect(first.get("https://bookmeter.example/security-1")?.vector[0]).toBe(1);
+      expect(second.get("https://bookmeter.example/security-1")?.vector[0]).toBe(1);
 
       syncSourceBooks({
         db: appDb.db,
@@ -93,6 +99,34 @@ describe("ensureBookEmbeddings", () => {
       });
 
       expect(provider.calls()).toBe(2);
+
+      appDb.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("embeds missing books in bounded batches", async () => {
+    const dir = createTempDir();
+    try {
+      const appDb = openAppDb(join(dir, "app.sqlite"));
+      const provider = mockProvider();
+      const sourceBooks = Array.from({ length: 130 }, (_, index) => sourceBook(`説明文 ${index}`, index + 1));
+
+      syncSourceBooks({
+        db: appDb.db,
+        booksDbPath: "fixture",
+        sourceBooks
+      });
+
+      const embeddings = await ensureBookEmbeddings({
+        db: appDb.db,
+        provider,
+        books: getCurrentSnapshots(appDb.db)
+      });
+
+      expect(provider.batchSizes()).toEqual([64, 64, 2]);
+      expect(embeddings.size).toBe(130);
 
       appDb.close();
     } finally {
