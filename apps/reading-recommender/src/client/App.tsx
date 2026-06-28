@@ -162,7 +162,7 @@ function SettingsView(input: {
         />
       </label>
       <label>
-        remote rank
+        読書メーター表示順の扱い
         <select
           value={merged.remoteOrderAgeDirection}
           onChange={(event) =>
@@ -172,9 +172,9 @@ function SettingsView(input: {
             })
           }
         >
-          <option value="larger_is_older">大きいほど古い</option>
-          <option value="larger_is_newer">大きいほど新しい</option>
-          <option value="disabled">使わない</option>
+          <option value="larger_is_older">表示順の後ろを古い本として扱う</option>
+          <option value="larger_is_newer">表示順の先頭を古い本として扱う</option>
+          <option value="disabled">表示順を推薦に使わない</option>
         </select>
       </label>
       <button onClick={() => input.onSave(draft)}>保存</button>
