@@ -26,58 +26,122 @@ const RECOMMENDATION_DAY_OPTIONS = [
   { value: 6, label: "土曜日" }
 ] as const;
 
+const JP_WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
+const ONE_DAY_MS = 86_400_000;
+
+function formatSlipDate(date: Date): string {
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+  return `${date.getMonth() + 1}/${String(date.getDate()).padStart(2, "0")} (${JP_WEEKDAYS[date.getDay()]})`;
+}
+
+function nextRecommendationDate(dayOfWeek: number, from: Date): Date {
+  const base = Number.isNaN(from.getTime()) ? new Date() : from;
+  const delta = ((dayOfWeek - base.getDay() + 6) % 7) + 1;
+  return new Date(base.getTime() + delta * ONE_DAY_MS);
+}
+
 function CurrentView(input: {
   readonly current: CurrentRecommendation | null;
+  readonly settings: AppSettings | null;
   readonly loading: boolean;
-  readonly onRun: () => void;
-  readonly onSkip: () => void;
-  readonly onPromote: (bookmeterUrl: string) => void;
+  readonly onRun: () => Promise<void>;
+  readonly onSkip: () => Promise<void>;
+  readonly onPromote: (bookmeterUrl: string) => Promise<void>;
 }): JSX.Element {
   const [selectedRelatedBook, setSelectedRelatedBook] = useState<CurrentRecommendation["relatedBooks"][number] | null>(
     null
   );
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function runAction(action: () => Promise<void>): Promise<void> {
+    setActionError(null);
+    try {
+      await action();
+    } catch {
+      setActionError("操作に失敗しました。少し時間をおいて再度お試しください。");
+    }
+  }
 
   if (input.loading) {
-    return <p className="status">読み込み中です。</p>;
+    return (
+      <section className="view" aria-busy="true">
+        <div className="skeleton-card">
+          <div className="skeleton-line skeleton-line--kicker" />
+          <div className="skeleton-line skeleton-line--title" />
+          <div className="skeleton-line skeleton-line--title skeleton-line--short" />
+          <div className="skeleton-line" />
+          <div className="skeleton-line" />
+          <div className="skeleton-line skeleton-line--short" />
+        </div>
+      </section>
+    );
   }
 
   if (!input.current?.primary) {
     return (
       <section className="view">
-        <h2>今週読む本</h2>
+        <h2 className="section-label">今週の一冊</h2>
         <p className="status">推薦を作成できる書籍がありません。</p>
-        <button onClick={input.onRun}>推薦を更新</button>
+        <button onClick={() => void runAction(input.onRun)}>推薦を更新</button>
+        {actionError ? (
+          <p className="status status--error" role="alert">
+            {actionError}
+          </p>
+        ) : null}
       </section>
     );
   }
 
+  const recommendationDate = new Date(input.current.createdAt);
+  const plannedFinishDate = input.settings
+    ? nextRecommendationDate(input.settings.recommendationDayOfWeek, recommendationDate)
+    : null;
+  const recommendationSlip = (
+    <div className="recommendation-slip">
+      <span className="recommendation-slip__col">
+        <span className="recommendation-slip__key">推薦日</span>
+        <span className="recommendation-slip__val">{formatSlipDate(recommendationDate)}</span>
+      </span>
+      <span className="recommendation-slip__sep" />
+      <span className="recommendation-slip__col">
+        <span className="recommendation-slip__key">読了予定</span>
+        <span className="recommendation-slip__val">{plannedFinishDate ? formatSlipDate(plannedFinishDate) : "—"}</span>
+      </span>
+    </div>
+  );
+
   return (
     <section className="view">
       <div className="view-heading">
-        <div>
-          <h2>今週読む本</h2>
-          <p>
-            cycle {input.current.cycleId} / {input.current.reason}
-          </p>
-        </div>
+        <p className="cycle-meta">
+          CYCLE {input.current.cycleId} · {input.current.reason}
+        </p>
         <div className="toolbar">
-          <button onClick={input.onRun}>更新</button>
-          <button onClick={input.onSkip}>skip</button>
+          <button onClick={() => void runAction(input.onRun)}>更新</button>
+          <button onClick={() => void runAction(input.onSkip)}>skip</button>
         </div>
       </div>
-      <BookPanel book={input.current.primary} />
-      <h2>副推薦</h2>
+      {actionError ? (
+        <p className="status status--error" role="alert">
+          {actionError}
+        </p>
+      ) : null}
+      <BookPanel book={input.current.primary} featured kicker="今週の一冊" slip={recommendationSlip} />
+      <h2 className="section-label">次の候補</h2>
       <div className="grid">
         {input.current.secondaries.map((book) => (
           <BookPanel
             key={book.bookmeterUrl}
             book={book}
+            kicker="候補"
             actionLabel="今週はこれを読む"
-            onAction={() => input.onPromote(book.bookmeterUrl)}
+            onAction={() => void runAction(() => input.onPromote(book.bookmeterUrl))}
           />
         ))}
       </div>
-      <h2>近い内容の本</h2>
+      <h2 className="section-label">近い内容の本</h2>
       <div className="related-list">
         {input.current.relatedBooks.map((book) => (
           <article
@@ -99,7 +163,7 @@ function CurrentView(input: {
               <p>{book.reasons.join(" ")}</p>
             </div>
             <div className="related-row__actions">
-              <span>{book.score.toFixed(3)}</span>
+              <span className="related-row__score">{book.score.toFixed(3)}</span>
               <a
                 className="button-link button-link--bookmeter"
                 href={book.bookmeterUrl}
@@ -127,13 +191,30 @@ function CurrentView(input: {
 
 function SettingsView(input: {
   readonly settings: AppSettings | null;
-  readonly onSave: (settings: Partial<AppSettings>) => void;
+  readonly onSave: (settings: Partial<AppSettings>) => Promise<void>;
 }): JSX.Element {
   const [draft, setDraft] = useState<Partial<AppSettings>>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
   const settings = input.settings;
 
+  async function save(): Promise<void> {
+    setSaveError(null);
+    try {
+      await input.onSave(draft);
+    } catch {
+      setSaveError("設定の保存に失敗しました。");
+    }
+  }
+
   if (!settings) {
-    return <p className="status">設定を読み込み中です。</p>;
+    return (
+      <section className="view compact" aria-busy="true">
+        <div className="skeleton-line skeleton-line--title" />
+        <div className="skeleton-field" />
+        <div className="skeleton-field" />
+        <div className="skeleton-field" />
+      </section>
+    );
   }
 
   const merged = { ...settings, ...draft };
@@ -177,7 +258,12 @@ function SettingsView(input: {
           <option value="disabled">表示順を推薦に使わない</option>
         </select>
       </label>
-      <button onClick={() => input.onSave(draft)}>保存</button>
+      <button onClick={() => void save()}>保存</button>
+      {saveError ? (
+        <p className="status status--error" role="alert">
+          {saveError}
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -218,18 +304,25 @@ export function App(): JSX.Element {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [diagnostics, setDiagnostics] = useState<readonly RowOrderDiagnostics[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function refresh(): Promise<void> {
     setLoading(true);
-    const [nextCurrent, nextSettings, nextDiagnostics] = await Promise.all([
-      fetchCurrentRecommendation(),
-      fetchSettings(),
-      fetchDiagnostics()
-    ]);
-    setCurrent(nextCurrent);
-    setSettings(nextSettings);
-    setDiagnostics(nextDiagnostics);
-    setLoading(false);
+    setLoadError(null);
+    try {
+      const [nextCurrent, nextSettings, nextDiagnostics] = await Promise.all([
+        fetchCurrentRecommendation(),
+        fetchSettings(),
+        fetchDiagnostics()
+      ]);
+      setCurrent(nextCurrent);
+      setSettings(nextSettings);
+      setDiagnostics(nextDiagnostics);
+    } catch {
+      setLoadError("データの読み込みに失敗しました。再読み込みしてください。");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -238,6 +331,10 @@ export function App(): JSX.Element {
 
   return (
     <main className="app-shell">
+      <header className="app-masthead">
+        <h1 className="app-masthead__title">読書目録</h1>
+        <span className="app-masthead__kicker">READING CATALOGUE</span>
+      </header>
       <nav>
         <NavLink className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to="/" end>
           推薦
@@ -252,22 +349,22 @@ export function App(): JSX.Element {
           診断
         </NavLink>
       </nav>
+      {loadError ? (
+        <p className="status status--error" role="alert">
+          {loadError}
+        </p>
+      ) : null}
       <Routes>
         <Route
           path="/"
           element={
             <CurrentView
               current={current}
+              settings={settings}
               loading={loading}
-              onRun={() => {
-                void runRecommendation().then(setCurrent);
-              }}
-              onSkip={() => {
-                void skipRecommendation().then(setCurrent);
-              }}
-              onPromote={(bookmeterUrl) => {
-                void promoteRecommendation(bookmeterUrl).then(setCurrent);
-              }}
+              onRun={() => runRecommendation().then(setCurrent)}
+              onSkip={() => skipRecommendation().then(setCurrent)}
+              onPromote={(bookmeterUrl) => promoteRecommendation(bookmeterUrl).then(setCurrent)}
             />
           }
         />
@@ -277,9 +374,7 @@ export function App(): JSX.Element {
           element={
             <SettingsView
               settings={settings}
-              onSave={(nextSettings) => {
-                void updateSettings(nextSettings).then(setSettings);
-              }}
+              onSave={(nextSettings) => updateSettings(nextSettings).then(setSettings)}
             />
           }
         />
