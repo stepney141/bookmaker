@@ -36,5 +36,8 @@
     "wish": "tsx src/index.ts full wish",
     "test": "vitest run",
     "test:watch": "vitest"
+  },
+  "volta": {
+    "node": "25.8.2"
   }
 }

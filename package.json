@@ -2,6 +2,7 @@
   "name": "bookmaker",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@11.9.0",
   "author": "stepney141 <stepney141andi.c.i@gmail.com>",
   "license": "MIT",
   "description": "Monorepo root. Workspaces live under apps/* and packages/*.",
@@ -28,7 +29,6 @@
     "typescript-eslint": "^8.58.0"
   },
   "volta": {
-    "node": "25.8.2",
-    "pnpm": "11.9.0"
+    "node": "25.8.2"
   }
 }
