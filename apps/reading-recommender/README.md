@@ -42,7 +42,7 @@ PORT=4174 pnpm --filter @bookmaker/reading-recommender run start
 
 ### Docker Compose 本番運用
 
-Docker Compose で常駐させる場合は、モノレポルートの `compose.yaml` を使う。compose service は source DB を `/source/books.sqlite` として読み取り専用で参照し、app DB を `/state/reading-recommender.sqlite` に保存する。これにより、`bookmeter` が生成する `data/books.sqlite` と、推薦履歴を保存する app DB の書き込み権限を分離できる。初回だけ既存の app DB を state directory に移すと、現在の推薦履歴と設定を引き継げる。
+Docker Compose で常駐させる場合は、モノレポルートの `compose.yaml` を使う。compose service は source DB を `/source/books.sqlite` として参照し、app DB を `/state/reading-recommender.sqlite` に保存する。アプリは source DB 本体を読み取り専用に開くが、SQLite の WAL reader は同じ directory に lock file を作る場合があるため、`/source` mount は書き込み可能にしている。これにより、`bookmeter` が生成する `data/books.sqlite` と、推薦履歴を保存する app DB の書き込み責務を分離できる。初回だけ既存の app DB を state directory に移すと、現在の推薦履歴と設定を引き継げる。
 
 ```bash
 mkdir -p data/reading-recommender backups/reading-recommender
@@ -71,7 +71,7 @@ docker compose up -d reading-recommender
 
 ### SQLite バックアップ
 
-SQLite backup は app service とは別の one-shot service として実行する。`sqlite-backup` service は SQLite の `.backup` を使って、稼働中の app DB から一貫した snapshot を `backups/reading-recommender/` に作る。既定では `books.sqlite` も同じ時刻の backup に含めるため、推薦状態と source DB を同じ世代で復旧できる。source DB は WAL mode なので、backup service だけは SQLite の lock file 処理を許可するために `data/` を書き込み可能で mount する。
+SQLite backup は app service とは別の one-shot service として実行する。`sqlite-backup` service は SQLite の `.backup` を使って、稼働中の app DB から一貫した snapshot を `backups/reading-recommender/` に作る。既定では `books.sqlite` も同じ時刻の backup に含めるため、推薦状態と source DB を同じ世代で復旧できる。source DB は WAL mode なので、backup service と app service は SQLite の lock file 処理を許可するために `data/` を書き込み可能で mount する。
 
 ```bash
 docker compose --profile backup build sqlite-backup
