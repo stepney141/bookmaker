@@ -1,4 +1,8 @@
 bookmeter_url,isbn_or_asin,book_title,author,publisher,published_date,exist_in_sophia,exist_in_utokyo,sophia_opac,utokyo_opac,sophia_mathlib_opac
+https://bookmeter.com/books/11052960,4535787484,キューネン数学基礎論講義,"Kunen,Kenneth,1943- 藤田,博司",日本評論社,201607,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB21718288,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB21718288,
+https://bookmeter.com/books/23366160,4065439353,確率の半歩先　予測・拡散モデルに挑む前の30話 (KS理工学専門書),大久保潤,講談社,,No,No,,,
+https://bookmeter.com/books/12685438,482699060X,酒の起源 : 最古のワイン、ビール、アルコール飲料を探す旅,"McGovern,PatrickE 藤原,多伽夫",白揚社,201803,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB25754829,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB25754829,
+https://bookmeter.com/books/21976774,4153400262,サイバースペースの地政学 (ハヤカワ新書),小宮山功一朗 小泉悠,早川書房,,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD07483655,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD07483655,
 https://bookmeter.com/books/23373987,4867931551,著作権全史,デイヴィッド・ベロス／著 アレクサンドル・モンタギュー／著 小佐田愛子／翻訳,作品社,20260703,No,No,,,
 https://bookmeter.com/books/4951759,4873115388,実践Metasploit : ペネトレーションテストによる脆弱性評価,"Kennedy,David,1982- O'Gorman,Jim Kearns,Devon ほか",オーム社,201205,No,Yes,,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB09253629,
 https://bookmeter.com/books/19813775,4274228797,マスタリングTCP/IP 情報セキュリティ編,"齋藤,孝道",オーム社,202206,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?isbn=4274228797,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BC15522154,

@@ -27,7 +27,8 @@ services:
       - type: bind
         source: ./data
         target: /source
-        read_only: true
+        # The app opens books.sqlite read-only, but SQLite WAL readers may need
+        # to create sidecar lock files in the same directory.
       - type: bind
         source: ./data/reading-recommender
         target: /state
