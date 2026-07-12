@@ -1,4 +1,9 @@
 bookmeter_url,isbn_or_asin,book_title,author,publisher,published_date,exist_in_sophia,exist_in_utokyo,sophia_opac,utokyo_opac,sophia_mathlib_opac
+https://bookmeter.com/books/20718495,4385227357,現代評論キーワード講義 : 基本用語から最新概念まで,,三省堂,202304,No,No,,,
+https://bookmeter.com/books/147529,4897978238,"メインフレーム実践ハンドブック : z/OS(MVS),MSP,VOS 3のしくみと使い方","神居,俊哉 高尾,司",リックテレコム,200903,No,No,,,
+https://bookmeter.com/books/11494052,4774187291,進化する銀行システム : 24時間365日動かすメインフレームの設計思想 / Software Design plusシリーズ,"星野, 武史, 1960-,花井, 志生,星野武史 著,花井志生 監修",技術評論社,"Tue, 7 Mar 2017 01:15:06 +0900",No,No,,,
+https://bookmeter.com/books/2427352,4871483010,コンピュータ言語進化論 : 思考増幅装置を求める知的冒険の旅 / ASCII海外ブックス,"Levine, Howard, 1947-,Rheingold, Howard, 1947-,椋田, 直子, 1941-,Howard Levine, Howard Rheingold 著,椋田直子 訳",アスキー,"Thu, 22 Dec 1988 09:00:00 +0900",No,Yes,,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BN02033924,
+https://bookmeter.com/books/23345882,4839990298,つくりながら学ぶ！画像生成AI 自作入門,,マイナビ出版,,No,No,,,
 https://bookmeter.com/books/11052960,4535787484,キューネン数学基礎論講義,"Kunen,Kenneth,1943- 藤田,博司",日本評論社,201607,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB21718288,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB21718288,
 https://bookmeter.com/books/23366160,4065439353,確率の半歩先　予測・拡散モデルに挑む前の30話 (KS理工学専門書),大久保潤,講談社,,No,No,,,
 https://bookmeter.com/books/12685438,482699060X,酒の起源 : 最古のワイン、ビール、アルコール飲料を探す旅,"McGovern,PatrickE 藤原,多伽夫",白揚社,201803,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB25754829,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB25754829,

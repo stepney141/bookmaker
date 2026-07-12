@@ -1,7 +1,7 @@
 $ tsx src/index.ts full wish
 Execution plan => mode=full, target=wish, forceRefresh=false, scrape=remote(login=true), phases=compare -> fetchBiblio -> crawlDescriptions -> persist -> exportCsv -> uploadDb
 Loading previous book list from SQLite database (table: wish)
-Loaded 1827 cached books from SQLite.
+Loaded 1831 cached books from SQLite.
 Login Completed!
 Scraping Started!
 scanning page 1
@@ -87,27 +87,39 @@ Completed fetching the list of ja books in Sophia Univ. Math Lib
 Completed creating a list of ISBNs of ja books in Sophia Univ. Math Lib
 Searching Completed
 Crawling Kinokuniya for book descriptions
-Loaded 1355 existing descriptions from database.
-Extracted description length: 794 characters
-Successfully fetched description for ISBN 4535787484.
-No book found with isbn_or_asin: 4535787484
-Extracted description length: 2594 characters
-Successfully fetched description for ISBN 4065439353.
-No book found with isbn_or_asin: 4065439353
-Extracted description length: 264 characters
-Successfully fetched description for ISBN 482699060X.
-No book found with isbn_or_asin: 482699060X
-Extracted description length: 556 characters
-Successfully fetched description for ISBN 4153400262.
-No book found with isbn_or_asin: 4153400262
+Loaded 1359 existing descriptions from database.
+Error fetching Kinokuniya page for ISBN 4385227357 (URL: https://www.kinokuniya.co.jp/f/dsg-01-9784385227351). TimeoutError: Navigation timeout of 30000 ms exceeded
+    at new Deferred (/home/stepney141/bookmaker/node_modules/.pnpm/puppeteer-core@24.43.1/node_modules/puppeteer-core/src/util/Deferred.ts:74:28)
+    at Deferred.create (/home/stepney141/bookmaker/node_modules/.pnpm/puppeteer-core@24.43.1/node_modules/puppeteer-core/src/util/Deferred.ts:29:12)
+    at new LifecycleWatcher (/home/stepney141/bookmaker/node_modules/.pnpm/puppeteer-core@24.43.1/node_modules/puppeteer-core/src/cdp/LifecycleWatcher.ts:152:42)
+    at CdpFrame.goto (/home/stepney141/bookmaker/node_modules/.pnpm/puppeteer-core@24.43.1/node_modules/puppeteer-core/src/cdp/Frame.ts:164:21)
+    at CdpFrame.<anonymous> (/home/stepney141/bookmaker/node_modules/.pnpm/puppeteer-core@24.43.1/node_modules/puppeteer-core/src/util/decorators.ts:63:21)
+    at CdpPage.goto (/home/stepney141/bookmaker/node_modules/.pnpm/puppeteer-core@24.43.1/node_modules/puppeteer-core/src/api/Page.ts:1796:35)
+    at extractBookDetails (/home/stepney141/bookmaker/apps/bookmeter/src/scrapers/kinokuniya.ts:23:14)
+    at fetchKinokuniyaDescription (/home/stepney141/bookmaker/apps/bookmeter/src/scrapers/kinokuniya.ts:60:32)
+    at crawlDescriptionPhase (/home/stepney141/bookmaker/apps/bookmeter/src/application/pipeline.ts:214:33)
+    at async main (/home/stepney141/bookmaker/apps/bookmeter/src/index.ts:97:5)
+No book found with isbn_or_asin: 4385227357
+Extracted description length: 356 characters
+Successfully fetched description for ISBN 4897978238.
+No book found with isbn_or_asin: 4897978238
+Extracted description length: 463 characters
+Successfully fetched description for ISBN 4774187291.
+No book found with isbn_or_asin: 4774187291
+Extracted description length: 300 characters
+Successfully fetched description for ISBN 4871483010.
+No book found with isbn_or_asin: 4871483010
+Extracted description length: 1316 characters
+Successfully fetched description for ISBN 4839990298.
+No book found with isbn_or_asin: 4839990298
 Saving data to SQLite database
 Synchronizing book list with database table: wish
-Re-inserting 1467 books into wish in remote order...
+Re-inserting 1472 books into wish in remote order...
 Synchronization complete for wish.
 Generating CSV from SQLite database
 Exporting columns [bookmeter_url, isbn_or_asin, book_title, author, publisher, published_date, exist_in_sophia, exist_in_utokyo, sophia_opac, utokyo_opac, sophia_mathlib_opac] from table wish to CSV file ./csv/bookmeter_wish_books.csv
-Fetched 1467 rows from wish.
-Successfully exported 1467 books to ./csv/bookmeter_wish_books.csv
+Fetched 1472 rows from wish.
+Successfully exported 1472 books to ./csv/bookmeter_wish_books.csv
 Finished writing ./csv/bookmeter_wish_books.csv
 Generating library CSV reports for wish list
 Finished writing ./csv/not_in_Sophia.csv
@@ -119,4 +131,4 @@ Finished writing ./csv/in_UTokyo_but_not_in_Sophia.csv
 Finished writing ./csv/not_in_Sophia_and_UTokyo.csv
 Uploading SQLite database to Firebase Storage...
 Database uploaded successfully to bookmeter/books.sqlite
-The processs took 356 seconds
+The processs took 419 seconds
