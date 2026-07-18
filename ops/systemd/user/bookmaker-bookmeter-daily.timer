@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Bookmeter daily update at 03:30 JST
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 Asia/Tokyo
+Persistent=true
+AccuracySec=1min
+Unit=bookmaker-bookmeter-daily.service
+
+[Install]
+WantedBy=timers.target

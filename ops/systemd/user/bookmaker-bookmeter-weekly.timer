@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Bookmeter weekly holdings refetch on Monday at 03:30 JST
+
+[Timer]
+OnCalendar=Mon *-*-* 03:30:00 Asia/Tokyo
+Persistent=true
+AccuracySec=1min
+Unit=bookmaker-bookmeter-weekly.service
+
+[Install]
+WantedBy=timers.target

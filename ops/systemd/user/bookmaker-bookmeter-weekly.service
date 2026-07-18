@@ -1,0 +1,14 @@
+[Unit]
+Description=Refetch Bookmeter wish-list library holdings
+Wants=bookmaker-bookmeter-daily.service
+After=bookmaker-bookmeter-daily.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/bookmaker
+Environment=TZ=Asia/Tokyo
+Environment=PATH=%h/.volta/tools/image/pnpm/11.9.0/bin:%h/.volta/tools/image/node/25.8.2/bin:/usr/local/bin:/usr/bin
+Environment=GIT_TERMINAL_PROMPT=0
+Environment="GIT_SSH_COMMAND=/usr/bin/ssh -o BatchMode=yes"
+ExecStart=/usr/bin/flock --exclusive %t/bookmaker-bookmeter.lock %h/bookmaker/run_tasks.sh weekly
+TimeoutStartSec=12h
