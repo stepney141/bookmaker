@@ -1,12 +1,13 @@
 :root {
-  /* Catalog palette: aged card stock in a wooden drawer, library-stamp ink */
-  --paper: #e6dec9; /* drawer / desk — desaturated wheat, less rust */
-  --card: #f4efe2; /* index-card stock — soft warm white */
-  --card-edge: #cbc1a8; /* card border */
-  --ink: #1c1a17; /* typed & printed text */
-  --ink-soft: #615c4f; /* secondary text — neutral taupe, not brown */
-  --rule: #c7bd9f; /* horizontal card ruling */
-  --rule-blue: #4f6e8c; /* faded blue ledger ruling */
+  /* Catalog palette: fresh white card stock, library-stamp ink */
+  --paper: #e9e4e2; /* desk — warm light gray, a hint of rose to match the stamp red */
+  --card: #fbf9f8; /* index-card stock — warm off-white */
+  --card-edge: #ddd5d2; /* card border */
+  --ink: #211d1c; /* typed & printed text */
+  --ink-soft: #6b615e; /* secondary text — warm gray */
+  --rule: #ecddd7; /* horizontal card ruling — pale vermilion */
+  --rule-red: #c4614f; /* faded vermilion ledger ruling */
+  --rule-blue: #4f6e8c; /* faded blue — links, focus, wish stamp */
   --stamp: #b23a2e; /* rubber-stamp red — the one bold accent */
   --utokyo: #1d64ab;
   --sophia: #7d002d;
@@ -22,8 +23,8 @@
   color: var(--ink);
   background-color: var(--paper);
   background-image:
-    repeating-linear-gradient(90deg, transparent 0 38px, rgb(28 26 23 / 2.5%) 38px 39px),
-    radial-gradient(120% 120% at 50% -10%, rgb(255 251 240 / 35%), transparent 60%);
+    repeating-linear-gradient(90deg, transparent 0 38px, rgb(33 29 28 / 2.5%) 38px 39px),
+    radial-gradient(120% 120% at 50% -10%, rgb(255 255 255 / 55%), transparent 60%);
   font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.6;
@@ -313,7 +314,7 @@ nav {
   border-radius: 2px;
   box-shadow:
     0 1px 0 var(--card-edge),
-    0 12px 26px -20px rgb(28 26 23 / 55%);
+    0 12px 26px -20px rgb(33 29 28 / 55%);
 }
 
 .book-panel--feature {
@@ -474,12 +475,12 @@ nav {
   gap: 14px;
   margin: 18px -28px 0 -30px;
   padding: 12px 28px 16px 30px;
-  border-top: 1px dashed var(--rule-blue);
+  border-top: 1px dashed var(--rule-red);
   background: repeating-linear-gradient(
     var(--card),
     var(--card) 22px,
-    rgb(79 110 140 / 9%) 22px,
-    rgb(79 110 140 / 9%) 23px
+    rgb(196 97 79 / 9%) 22px,
+    rgb(196 97 79 / 9%) 23px
   );
 }
 
@@ -506,7 +507,7 @@ nav {
 .recommendation-slip__sep {
   flex: 1;
   min-width: 24px;
-  border-bottom: 1px dotted var(--rule-blue);
+  border-bottom: 1px dotted var(--rule-red);
 }
 
 /* Secondary card grid */
@@ -525,7 +526,7 @@ nav {
   border-radius: 2px;
   box-shadow:
     0 1px 0 var(--card-edge),
-    0 12px 26px -20px rgb(28 26 23 / 55%);
+    0 12px 26px -20px rgb(33 29 28 / 55%);
 }
 
 .related-row {
@@ -542,7 +543,7 @@ nav {
 }
 
 .related-row:hover {
-  background: rgb(79 110 140 / 7%);
+  background: rgb(196 97 79 / 7%);
 }
 
 .related-row h3 {
@@ -600,8 +601,8 @@ nav {
 }
 
 .result-row:hover {
-  border-color: var(--rule-blue);
-  background: rgb(255 251 240 / 55%);
+  border-color: var(--rule-red);
+  background: rgb(196 97 79 / 6%);
 }
 
 .result-row > span {
@@ -647,7 +648,7 @@ nav {
   place-items: center;
   padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
     max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-  background: rgb(28 26 23 / 42%);
+  background: rgb(33 29 28 / 42%);
 }
 
 .book-dialog {
@@ -657,7 +658,7 @@ nav {
   gap: 12px;
   padding: 22px 24px;
   overflow: auto;
-  box-shadow: 0 18px 44px rgb(28 26 23 / 30%);
+  box-shadow: 0 18px 44px rgb(33 29 28 / 30%);
   animation: dialog-in 0.18s ease-out both;
 }
 
