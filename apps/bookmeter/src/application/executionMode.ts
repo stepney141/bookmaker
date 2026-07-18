@@ -42,11 +42,11 @@ export type ScrapeSource = RemoteScrapeSource | LocalCacheScrapeSource;
 
 export type ExecutionMode =
   | {
-      type: "full";
+      type: "sync";
       doLogin?: boolean;
     }
   | {
-      type: "scrape-only";
+      type: "scrape";
       doLogin?: boolean;
     }
   | {
@@ -56,7 +56,8 @@ export type ExecutionMode =
     };
 
 type SharedOption = {
-  forceRefresh?: boolean;
+  refetch?: boolean;
+  ignoreDiff?: boolean;
   userId?: string;
   outputFilePath?: OutputFilePath | null;
 };
@@ -76,7 +77,8 @@ export type ParsedCliCommand =
     };
 
 export type ExecutionPlan = {
-  forceRefresh: boolean;
+  refetch: boolean;
+  ignoreDiff: boolean;
   target: BookmeterTarget;
   userId: string;
   outputFilePath: OutputFilePath | null;
@@ -85,7 +87,7 @@ export type ExecutionPlan = {
   phases: ExecutionPhaseState;
 };
 
-export const CLI_SUBCOMMANDS = ["full", "scrape-only", "local-downstream", "local-biblio"] as const;
+export const CLI_SUBCOMMANDS = ["sync", "scrape", "enrich", "export"] as const;
 export type CliSubcommand = (typeof CLI_SUBCOMMANDS)[number];
 
 type ExecutionModeErrorContext =
@@ -108,9 +110,9 @@ export class ExecutionModeError extends BaseError {
 }
 
 const NO_PHASES = createPhaseState([]);
-const FULL_PHASES = createPhaseState(EXECUTION_PHASES);
-const LOCAL_DOWNSTREAM_PHASES = ["persist", "exportCsv", "uploadDb"] as const;
-const LOCAL_BIBLIO_PHASES = ["fetchBiblio", "persist", "exportCsv", "uploadDb"] as const;
+const SYNC_PHASES = createPhaseState(EXECUTION_PHASES);
+const EXPORT_PHASES = ["persist", "exportCsv", "uploadDb"] as const;
+const ENRICH_PHASES = ["fetchBiblio", "persist", "exportCsv", "uploadDb"] as const;
 
 function createPhaseState(enabledPhases: readonly ExecutionPhase[]): ExecutionPhaseState {
   const enabled = new Set(enabledPhases);
@@ -149,13 +151,13 @@ function resolveNamedExecutionMode(mode: ExecutionMode): Result<
   ExecutionModeError
 > {
   switch (mode.type) {
-    case "full":
+    case "sync":
       return Ok({
         modeName: mode.type,
         scrape: { type: "remote", doLogin: mode.doLogin ?? true },
-        phases: FULL_PHASES
+        phases: SYNC_PHASES
       });
-    case "scrape-only":
+    case "scrape":
       return Ok({
         modeName: mode.type,
         scrape: { type: "remote", doLogin: mode.doLogin ?? true },
@@ -183,7 +185,8 @@ export function resolveExecutionPlan(option: MainFuncOption): Result<ExecutionPl
   }
 
   return Ok({
-    forceRefresh: option.forceRefresh ?? false,
+    refetch: option.refetch ?? false,
+    ignoreDiff: option.ignoreDiff ?? false,
     target: option.target,
     userId: option.userId ?? DEFAULT_BOOKMETER_USER_ID,
     outputFilePath: option.outputFilePath ?? null,
@@ -219,11 +222,19 @@ function configureNoLoginOption<T>(parser: Argv<T>): Argv<T> {
   });
 }
 
-function configureForceOption<T>(parser: Argv<T>): Argv<T> {
-  return parser.option("force", {
+function configureRefetchOption<T>(parser: Argv<T>): Argv<T> {
+  return parser.option("refetch", {
     type: "boolean",
     default: false,
     description: "Ignore cached bibliographic, holding, and description data and fetch them again."
+  });
+}
+
+function configureIgnoreDiffOption<T>(parser: Argv<T>): Argv<T> {
+  return parser.option("ignore-diff", {
+    type: "boolean",
+    default: false,
+    description: "Run downstream phases even when the scraped list matches the previous snapshot."
   });
 }
 
@@ -248,7 +259,7 @@ function extractLogin(value: unknown): boolean {
   return value !== false;
 }
 
-function extractForceRefresh(value: unknown): boolean {
+function extractBooleanFlag(value: unknown): boolean {
   return value === true;
 }
 
@@ -257,21 +268,21 @@ function buildExecutionModeFromSubcommand(
   option: Readonly<{ doLogin?: boolean }>
 ): ExecutionMode {
   switch (subcommand) {
-    case "full":
-      return { type: "full", doLogin: option.doLogin };
-    case "scrape-only":
-      return { type: "scrape-only", doLogin: option.doLogin };
-    case "local-downstream":
+    case "sync":
+      return { type: "sync", doLogin: option.doLogin };
+    case "scrape":
+      return { type: "scrape", doLogin: option.doLogin };
+    case "export":
       return {
         type: "custom",
         scrape: { type: "local-cache" },
-        enabledPhases: LOCAL_DOWNSTREAM_PHASES
+        enabledPhases: EXPORT_PHASES
       };
-    case "local-biblio":
+    case "enrich":
       return {
         type: "custom",
         scrape: { type: "local-cache" },
-        enabledPhases: LOCAL_BIBLIO_PHASES
+        enabledPhases: ENRICH_PHASES
       };
   }
 }
@@ -288,7 +299,8 @@ export function parseCliArgs(argv: string[]): Result<ParsedCliCommand, Execution
     }
 
     parsedOption = {
-      forceRefresh: extractForceRefresh(args.force),
+      refetch: extractBooleanFlag(args.refetch),
+      ignoreDiff: extractBooleanFlag(args.ignoreDiff),
       target: targetResult.value,
       userId: extractUserId(args.userId),
       execution: buildExecutionModeFromSubcommand(subcommand, {
@@ -304,51 +316,50 @@ export function parseCliArgs(argv: string[]): Result<ParsedCliCommand, Execution
     })
     .usage("$0 <command> <target> [options]")
     .command(
-      "full <target>",
-      "Scrape the remote list and run the full pipeline",
+      "sync <target>",
+      "Scrape the remote list and refresh all downstream artifacts",
       (command) =>
-        configureForceOption(configureNoLoginOption(configureUserIdOption(configureTargetPositional(command)))).example(
-          "$0 full wish --user-id 42",
-          "Run the full pipeline against the wish list for user 42"
-        ),
+        configureIgnoreDiffOption(
+          configureRefetchOption(configureNoLoginOption(configureUserIdOption(configureTargetPositional(command))))
+        ).example("$0 sync wish --user-id 42", "Sync the wish list for user 42"),
       (args) => {
-        captureOption("full", args);
+        captureOption("sync", args);
       }
     )
     .command(
-      "scrape-only <target>",
-      "Scrape the remote list and stop before comparison and persistence",
+      "scrape <target>",
+      "Scrape the remote list without running any downstream phase",
       (command) =>
-        configureForceOption(configureNoLoginOption(configureUserIdOption(configureTargetPositional(command)))).example(
-          "$0 scrape-only wish --no-login",
+        configureNoLoginOption(configureUserIdOption(configureTargetPositional(command))).example(
+          "$0 scrape wish --no-login",
           "Scrape the wish list without logging in first"
         ),
       (args) => {
-        captureOption("scrape-only", args);
+        captureOption("scrape", args);
       }
     )
     .command(
-      "local-downstream <target>",
-      "Load the local snapshot and run persistence/export phases without remote enrichment",
+      "enrich <target>",
+      "Load the local snapshot, fetch bibliographic data via APIs, then persist and export CSV",
       (command) =>
-        configureForceOption(configureUserIdOption(configureTargetPositional(command))).example(
-          "$0 local-downstream wish",
+        configureRefetchOption(configureUserIdOption(configureTargetPositional(command))).example(
+          "$0 enrich wish --refetch",
+          "Refetch API-backed metadata for every book in the local wish snapshot"
+        ),
+      (args) => {
+        captureOption("enrich", args);
+      }
+    )
+    .command(
+      "export <target>",
+      "Load the local snapshot and rebuild the SQLite/CSV/upload artifacts without remote enrichment",
+      (command) =>
+        configureUserIdOption(configureTargetPositional(command)).example(
+          "$0 export wish",
           "Reuse the local wish snapshot and rebuild downstream artifacts"
         ),
       (args) => {
-        captureOption("local-downstream", args);
-      }
-    )
-    .command(
-      "local-biblio <target>",
-      "Load the local snapshot, fetch bibliographic data via APIs, then persist and export CSV",
-      (command) =>
-        configureForceOption(configureUserIdOption(configureTargetPositional(command))).example(
-          "$0 local-biblio wish",
-          "Reuse the local wish snapshot, refresh API-backed metadata, and rebuild the CSV"
-        ),
-      (args) => {
-        captureOption("local-biblio", args);
+        captureOption("export", args);
       }
     )
     .demandCommand(1, `Specify a subcommand: ${CLI_SUBCOMMANDS.join(" | ")}`)
@@ -418,7 +429,7 @@ export function describeExecutionPlan(plan: ExecutionPlan): string {
   const scrapeLabel = plan.scrape.type === "remote" ? `remote(login=${String(plan.scrape.doLogin)})` : "local-cache";
   const enabledPhases = EXECUTION_PHASES.filter((phase) => plan.phases[phase]);
 
-  return `mode=${plan.modeName}, target=${plan.target}, forceRefresh=${String(plan.forceRefresh)}, scrape=${scrapeLabel}, phases=${
+  return `mode=${plan.modeName}, target=${plan.target}, refetch=${String(plan.refetch)}, ignoreDiff=${String(plan.ignoreDiff)}, scrape=${scrapeLabel}, phases=${
     enabledPhases.length > 0 ? enabledPhases.join(" -> ") : "none"
   }`;
 }

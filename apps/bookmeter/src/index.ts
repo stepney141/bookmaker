@@ -117,12 +117,12 @@ export async function main(option: MainFuncOption): Promise<boolean> {
 
 /**
  * examples:
- * tsx bookmeter/src/index.ts full wish
- * tsx bookmeter/src/index.ts scrape-only stacked --no-login
- * tsx bookmeter/src/index.ts local-downstream wish
- * tsx bookmeter/src/index.ts local-biblio wish
- * tsx bookmeter/src/index.ts full wish --force
- * tsx bookmeter/src/index.ts full wish --user-id 42
+ * tsx bookmeter/src/index.ts sync wish
+ * tsx bookmeter/src/index.ts scrape stacked --no-login
+ * tsx bookmeter/src/index.ts export wish
+ * tsx bookmeter/src/index.ts enrich wish
+ * tsx bookmeter/src/index.ts sync wish --refetch
+ * tsx bookmeter/src/index.ts sync wish --user-id 42
  */
 (async () => {
   const cliOption = parseCliArgs(process.argv);

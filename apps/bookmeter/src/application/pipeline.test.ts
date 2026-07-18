@@ -24,11 +24,12 @@ import type { ISBN10 } from "../domain/isbn";
 
 const makeExecutionPlan = (overrides: Partial<ExecutionPlan> = {}): ExecutionPlan => {
   return {
-    forceRefresh: false,
+    refetch: false,
+    ignoreDiff: false,
     target: "stacked",
     userId: "1003258",
     outputFilePath: null,
-    modeName: "full",
+    modeName: "sync",
     scrape: { type: "remote", doLogin: true },
     phases: {
       compare: true,
@@ -98,8 +99,15 @@ beforeEach(() => {
 });
 
 describe("shouldRunDownstreamPhases", () => {
-  it("continues when forceRefresh is enabled even if the list is unchanged", () => {
-    const plan = makeExecutionPlan({ forceRefresh: true });
+  it("continues when refetch is enabled even if the list is unchanged", () => {
+    const plan = makeExecutionPlan({ refetch: true });
+    const bookList = toBookList(["same-1", "same-2"]);
+
+    expect(shouldRunDownstreamPhases(plan, bookList, bookList)).toBe(true);
+  });
+
+  it("continues when ignoreDiff is enabled even if the list is unchanged", () => {
+    const plan = makeExecutionPlan({ ignoreDiff: true });
     const bookList = toBookList(["same-1", "same-2"]);
 
     expect(shouldRunDownstreamPhases(plan, bookList, bookList)).toBe(true);
@@ -111,7 +119,7 @@ describe("shouldRunDownstreamPhases", () => {
     expect(shouldRunDownstreamPhases(plan, toBookList(["old-1", "old-2"]), toBookList(["old-2", "old-1"]))).toBe(true);
   });
 
-  it("stops when the list is unchanged and forceRefresh is disabled", () => {
+  it("stops when the list is unchanged and neither refetch nor ignoreDiff is set", () => {
     const plan = makeExecutionPlan();
     const bookList = toBookList(["same-1", "same-2"]);
 
@@ -120,8 +128,8 @@ describe("shouldRunDownstreamPhases", () => {
 });
 
 describe("crawlDescriptionPhase", () => {
-  it("skips fetching for existing books without cached descriptions when forceRefresh is disabled", async () => {
-    const plan = makeExecutionPlan({ forceRefresh: false });
+  it("skips fetching for existing books without cached descriptions when refetch is disabled", async () => {
+    const plan = makeExecutionPlan({ refetch: false });
     const latestBookList = toBookList(["existing-book"]);
     const prevBookList = toBookList(["existing-book"]);
     const { browser, page, repo, updateDescription } = createDescriptionTestContext();
@@ -133,8 +141,8 @@ describe("crawlDescriptionPhase", () => {
     expect(page.close).toHaveBeenCalledOnce();
   });
 
-  it("fetches descriptions for new books when forceRefresh is disabled", async () => {
-    const plan = makeExecutionPlan({ forceRefresh: false });
+  it("fetches descriptions for new books when refetch is disabled", async () => {
+    const plan = makeExecutionPlan({ refetch: false });
     const latestBookList = toBookList(["new-book"]);
     const prevBookList = toBookList(["existing-book"]);
     const { browser, repo, updateDescription } = createDescriptionTestContext();
@@ -146,8 +154,8 @@ describe("crawlDescriptionPhase", () => {
     expect(latestBookList.get("new-book")?.description).toBe("fetched-description");
   });
 
-  it("fetches descriptions for existing books when forceRefresh is enabled", async () => {
-    const plan = makeExecutionPlan({ forceRefresh: true });
+  it("fetches descriptions for existing books when refetch is enabled", async () => {
+    const plan = makeExecutionPlan({ refetch: true });
     const latestBookList = toBookList(["existing-book"]);
     const prevBookList = toBookList(["existing-book"]);
     const { browser, repo } = createDescriptionTestContext();
@@ -158,7 +166,7 @@ describe("crawlDescriptionPhase", () => {
   });
 
   it("treats all books as new when the previous snapshot is missing", async () => {
-    const plan = makeExecutionPlan({ forceRefresh: false });
+    const plan = makeExecutionPlan({ refetch: false });
     const latestBookList = toBookList(["first-run-book"]);
     const { browser, repo } = createDescriptionTestContext();
 

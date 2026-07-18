@@ -20,16 +20,16 @@
 
 ```bash
 # ワークスペースルートから（フィルタ指定）
-pnpm --filter @bookmaker/bookmeter run wish      # wish リスト（full パイプライン）
-pnpm --filter @bookmaker/bookmeter run stacked   # stacked リスト（full パイプライン）
+pnpm --filter @bookmaker/bookmeter run wish      # wish リスト（sync パイプライン）
+pnpm --filter @bookmaker/bookmeter run stacked   # stacked リスト（sync パイプライン）
 
 # このディレクトリ（apps/bookmeter）内から、任意のモード・オプションを指定
-pnpm exec tsx src/index.ts full wish
-pnpm exec tsx src/index.ts scrape-only stacked --no-login   # スクレイピングのみ
-pnpm exec tsx src/index.ts local-downstream wish            # ローカルキャッシュから下流フェーズのみ
-pnpm exec tsx src/index.ts local-biblio wish                # ローカルキャッシュから API 補強を再実行
-pnpm exec tsx src/index.ts full wish --force                # キャッシュを無視して強制更新
-pnpm exec tsx src/index.ts full wish --user-id 42           # ユーザーID指定
+pnpm exec tsx src/index.ts sync wish
+pnpm exec tsx src/index.ts scrape stacked --no-login   # スクレイピングのみ
+pnpm exec tsx src/index.ts export wish                 # ローカルキャッシュから下流フェーズのみ
+pnpm exec tsx src/index.ts enrich wish                 # ローカルキャッシュから API 補強を再実行
+pnpm exec tsx src/index.ts sync wish --refetch         # キャッシュを無視して書誌・所蔵・説明文を再取得
+pnpm exec tsx src/index.ts sync wish --user-id 42      # ユーザーID指定
 ```
 
 > SQLite データベースは共有成果物としてモノレポルートの `data/books.sqlite` に置かれる。このアプリが生成元（writer）で、パスは `BOOKS_DB_PATH` 環境変数で上書きできる。`better-sqlite3` / `puppeteer` のネイティブビルドはルート `pnpm-workspace.yaml` の `allowBuilds` で許可している。
@@ -38,16 +38,14 @@ pnpm exec tsx src/index.ts full wish --user-id 42           # ユーザーID指�
 
 | モード | 説明 |
 |--------|------|
-| `full` | スクレイピングから全フェーズを実行 |
-| `scrape-only` | スクレイピングのみ実行し、下流フェーズをスキップ |
-| `local-downstream` | スクレイピングをスキップし、ローカルキャッシュからDB保存・CSV出力・アップロードを実行 |
-| `local-biblio` | Bookmeter/紀伊國屋のスクレイピングをスキップし、ローカルキャッシュからAPI取得・DB保存・CSV出力・アップロードを実行 |
-
-`--force` を付けると、既存の SQLite キャッシュを使わずに書誌情報、CiNii 所蔵情報、紀伊國屋の説明文を再取得する。通常実行では、既知の書籍に対する再取得を避ける。
+| `sync` | スクレイピングから全フェーズを実行し、成果物を最新化 |
+| `scrape` | スクレイピングのみ実行し、下流フェーズをスキップ |
+| `export` | スクレイピングをスキップし、ローカルキャッシュからDB保存・CSV出力・アップロードを実行 |
+| `enrich` | Bookmeter/紀伊國屋のスクレイピングをスキップし、ローカルキャッシュからAPI取得・DB保存・CSV出力・アップロードを実行 |
 
 #### 各モードの有効フェーズ
 
-| フェーズ | `full` | `scrape-only` | `local-downstream` | `local-biblio` |
+| フェーズ | `sync` | `scrape` | `export` | `enrich` |
 |---|:---:|:---:|:---:|:---:|
 | scrape（データ取得元） | remote | remote | local-cache | local-cache |
 | compare | o | - | - | - |
@@ -57,30 +55,32 @@ pnpm exec tsx src/index.ts full wish --user-id 42           # ユーザーID指�
 | exportCsv | o | - | o | o |
 | uploadDb | o | - | o | o |
 
-#### `--force` の有無によるキャッシュ挙動
+#### `--refetch` と `--ignore-diff`
 
-| フェーズ | `--force` なし | `--force` あり |
+キャッシュ制御は2つのフラグに分かれる。`--refetch`（`sync` / `enrich` で使用可）は、既存の SQLite キャッシュを使わずに書誌情報・CiNii 所蔵情報・紀伊國屋の説明文を再取得する。`--ignore-diff`（`sync` のみ）は、compare で前回スナップショットとの差分がなくても後続フェーズを実行する。`--refetch` を指定した場合、再取得が目的である以上リスト差分の有無は無関係なので、compare は `--ignore-diff` なしでも打ち切りにならない。他のモードではこれらのフラグは定義されておらず、指定するとエラーになる。
+
+| フェーズ | フラグなし | フラグあり |
 |---|---|---|
-| **compare** | 前回スナップショットと比較し、差分がなければ後続フェーズをスキップ | 比較結果に関係なく後続フェーズを常に実行 |
-| **fetchBiblio — 書誌情報** | `book_title`, `author`, `publisher`, `published_date` の4項目がすべて有効値ならスキップ（空文字・`Not_found_in_*`・`*_API_Error`・`INVALID_ISBN` は欠損扱い） | 全書籍を無条件で再取得 |
-| **fetchBiblio — 所蔵検索** | `cachedBookUrls`（DB上の wish+stacked を結合した URL セット）に含まれていればスキップ | 全書籍を無条件で再検索 |
-| **crawlDescriptions** | DBに既存の説明文があれば再利用し、新規書籍のみ紀伊國屋から取得 | 既存の説明文があっても再取得 |
+| **compare** | 前回スナップショットと比較し、差分がなければ後続フェーズをスキップ | `--refetch` または `--ignore-diff` があれば、比較結果に関係なく後続フェーズを常に実行 |
+| **fetchBiblio — 書誌情報** | `book_title`, `author`, `publisher`, `published_date` の4項目がすべて有効値ならスキップ（空文字・`Not_found_in_*`・`*_API_Error`・`INVALID_ISBN` は欠損扱い） | `--refetch` で全書籍を無条件に再取得 |
+| **fetchBiblio — 所蔵検索** | `cachedBookUrls`（DB上の wish+stacked を結合した URL セット）に含まれていればスキップ | `--refetch` で全書籍を無条件に再検索 |
+| **crawlDescriptions** | DBに既存の説明文があれば再利用し、新規書籍のみ紀伊國屋から取得 | `--refetch` で既存の説明文があっても再取得 |
 | **persist / exportCsv / uploadDb** | キャッシュ判定なし（常に実行） | 同左 |
 
-#### `--force` を使う基準
+#### `--refetch` を使う基準
 
-URL 列の追加・削除・並び替えを検知するだけなら、通常は `--force` を使わない。`full` は毎回 Bookmeter の一覧をスクレイピングし、前回スナップショットと現在の `bookmeter_url` の集合および順序を比較するため、キャッシュを長期間使っていても URL 列の差分は検知できる。ただし、同じ URL 列に戻った途中経過や、同じ `bookmeter_url` のまま変わった書誌情報・所蔵情報・説明文は、URL 列の差分としては扱わない。この区別を前提に、`--force` は URL 列ではなく下流データを再取得したい時に使う。
+URL 列の追加・削除・並び替えを検知するだけなら、`--refetch` は不要である。`sync` は毎回 Bookmeter の一覧をスクレイピングし、前回スナップショットと現在の `bookmeter_url` の集合および順序を比較するため、キャッシュを長期間使っていても URL 列の差分は検知できる。ただし、同じ URL 列に戻った途中経過や、同じ `bookmeter_url` のまま変わった書誌情報・所蔵情報・説明文は、URL 列の差分としては扱わない。この区別を前提に、`--refetch` は URL 列ではなく下流データを再取得したい時に使う。
 
-`--force` を使う主な場面は、既存書籍の書誌情報を API から取り直したい時、CiNii 所蔵情報を再検索したい時、紀伊國屋の説明文を既存書籍も含めて更新したい時、またはキャッシュ済みデータに誤りがあると分かっている時である。通常の追加・削除・並び替えに対しては `full` の通常実行で足りる。Bookmeter を再スクレイピングせずにローカルスナップショットの書誌・所蔵だけを再取得したい場合は、`local-biblio --force` を使う。次に、モードごとの具体的な挙動をまとめる。
+`--refetch` を使う主な場面は、既存書籍の書誌情報を API から取り直したい時、CiNii 所蔵情報を再検索したい時、紀伊國屋の説明文を既存書籍も含めて更新したい時、またはキャッシュ済みデータに誤りがあると分かっている時である。通常の追加・削除・並び替えに対しては `sync` の通常実行で足りる。Bookmeter を再スクレイピングせずにローカルスナップショットの書誌・所蔵だけを再取得したい場合は、`enrich --refetch` を使う。次に、モードごとの具体的な挙動をまとめる。
 
 #### モード別まとめ
 
-| モード | `--force` なし | `--force` あり |
+| モード | `--refetch` なし | `--refetch` あり |
 |---|---|---|
-| **full** | remote スクレイプ → 差分なしなら停止。差分ありなら未取得分のみAPI・所蔵検索、新規書籍のみ説明文取得 → 保存・出力 | remote スクレイプ → 比較を無視して全書籍の書誌・所蔵・説明文を再取得 → 保存・出力 |
-| **scrape-only** | remote スクレイプのみ。後続フェーズなし | 同左（`--force` の効果なし） |
-| **local-downstream** | 前回スナップショットをそのまま保存・CSV出力・アップロード | 同左（`--force` の効果なし） |
-| **local-biblio** | 前回スナップショットに対し、未取得分のみ書誌・所蔵検索 → 保存・CSV出力・アップロード | 前回スナップショットに対し、全書籍の書誌・所蔵を再取得 → 保存・CSV出力・アップロード |
+| **sync** | remote スクレイプ → 差分なしなら停止（`--ignore-diff` で続行可）。差分ありなら未取得分のみAPI・所蔵検索、新規書籍のみ説明文取得 → 保存・出力 | remote スクレイプ → 比較を無視して全書籍の書誌・所蔵・説明文を再取得 → 保存・出力 |
+| **scrape** | remote スクレイプのみ。後続フェーズなし | （フラグ定義なし） |
+| **export** | 前回スナップショットをそのまま保存・CSV出力・アップロード | （フラグ定義なし） |
+| **enrich** | 前回スナップショットに対し、未取得分のみ書誌・所蔵検索 → 保存・CSV出力・アップロード | 前回スナップショットに対し、全書籍の書誌・所蔵を再取得 → 保存・CSV出力・アップロード |
 
 ### ターゲット
 

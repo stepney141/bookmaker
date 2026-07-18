@@ -11,16 +11,17 @@ const unwrapOk = <T>(result: { ok: true; value: T } | { ok: false; err: Error })
 };
 
 describe("resolveExecutionPlan", () => {
-  it("resolves scrape-only with no downstream phases", () => {
+  it("resolves scrape with no downstream phases", () => {
     const plan = unwrapOk(
       resolveExecutionPlan({
         target: "wish",
-        execution: { type: "scrape-only" }
+        execution: { type: "scrape" }
       })
     );
 
-    expect(plan.modeName).toBe("scrape-only");
-    expect(plan.forceRefresh).toBe(false);
+    expect(plan.modeName).toBe("scrape");
+    expect(plan.refetch).toBe(false);
+    expect(plan.ignoreDiff).toBe(false);
     expect(plan.scrape).toEqual({ type: "remote", doLogin: true });
     expect(plan.phases.compare).toBe(false);
     expect(plan.phases.fetchBiblio).toBe(false);
@@ -30,7 +31,7 @@ describe("resolveExecutionPlan", () => {
     expect(plan.phases.uploadDb).toBe(false);
   });
 
-  it("resolves local-downstream as a local-cache downstream pipeline", () => {
+  it("resolves the export phase set as a local-cache pipeline", () => {
     const plan = unwrapOk(
       resolveExecutionPlan({
         target: "wish",
@@ -43,7 +44,8 @@ describe("resolveExecutionPlan", () => {
     );
 
     expect(plan.modeName).toBe("custom");
-    expect(plan.forceRefresh).toBe(false);
+    expect(plan.refetch).toBe(false);
+    expect(plan.ignoreDiff).toBe(false);
     expect(plan.scrape).toEqual({ type: "local-cache" });
     expect(plan.phases.compare).toBe(false);
     expect(plan.phases.fetchBiblio).toBe(false);
@@ -74,35 +76,46 @@ describe("resolveExecutionPlan", () => {
 
 describe("parseCliArgs", () => {
   it("parses a named execution mode", () => {
-    expect(unwrapOk(parseCliArgs(["node", "bookmeter", "scrape-only", "stacked"]))).toEqual({
+    expect(unwrapOk(parseCliArgs(["node", "bookmeter", "scrape", "stacked"]))).toEqual({
       type: "run",
       option: {
-        forceRefresh: false,
+        refetch: false,
+        ignoreDiff: false,
         target: "stacked",
-        execution: { type: "scrape-only", doLogin: true }
+        execution: { type: "scrape", doLogin: true }
       }
     });
   });
 
   it("parses subcommand flags into execution options", () => {
     expect(
-      unwrapOk(parseCliArgs(["node", "bookmeter", "full", "wish", "--user-id", "42", "--no-login", "--force"]))
+      unwrapOk(
+        parseCliArgs(["node", "bookmeter", "sync", "wish", "--user-id", "42", "--no-login", "--refetch", "--ignore-diff"])
+      )
     ).toEqual({
       type: "run",
       option: {
-        forceRefresh: true,
+        refetch: true,
+        ignoreDiff: true,
         target: "wish",
         userId: "42",
-        execution: { type: "full", doLogin: false }
+        execution: { type: "sync", doLogin: false }
       }
     });
   });
 
-  it("maps local-downstream to the local-cache downstream pipeline", () => {
-    expect(unwrapOk(parseCliArgs(["node", "bookmeter", "local-downstream", "wish"]))).toEqual({
+  it("rejects --refetch on subcommands that do not define it", () => {
+    const result = parseCliArgs(["node", "bookmeter", "export", "wish", "--refetch"]);
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("maps export to the local-cache downstream pipeline", () => {
+    expect(unwrapOk(parseCliArgs(["node", "bookmeter", "export", "wish"]))).toEqual({
       type: "run",
       option: {
-        forceRefresh: false,
+        refetch: false,
+        ignoreDiff: false,
         target: "wish",
         execution: {
           type: "custom",
@@ -113,11 +126,12 @@ describe("parseCliArgs", () => {
     });
   });
 
-  it("maps local-biblio to the local-cache API enrichment pipeline", () => {
-    expect(unwrapOk(parseCliArgs(["node", "bookmeter", "local-biblio", "wish"]))).toEqual({
+  it("maps enrich to the local-cache API enrichment pipeline", () => {
+    expect(unwrapOk(parseCliArgs(["node", "bookmeter", "enrich", "wish", "--refetch"]))).toEqual({
       type: "run",
       option: {
-        forceRefresh: false,
+        refetch: true,
+        ignoreDiff: false,
         target: "wish",
         execution: {
           type: "custom",
@@ -129,7 +143,7 @@ describe("parseCliArgs", () => {
   });
 
   it("returns help without scheduling execution", () => {
-    expect(unwrapOk(parseCliArgs(["node", "bookmeter", "full", "--help"]))).toEqual({
+    expect(unwrapOk(parseCliArgs(["node", "bookmeter", "sync", "--help"]))).toEqual({
       type: "help"
     });
   });

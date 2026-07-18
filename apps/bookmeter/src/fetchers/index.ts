@@ -21,7 +21,7 @@ import type { Book, BookList } from "../domain/book";
 
 export type FetchBiblioInfoOptions = {
   cachedBookUrls: ReadonlySet<string>;
-  forceRefresh: boolean;
+  refetch: boolean;
 };
 
 /** 単一書籍の fetcher 関数シグネチャ */
@@ -94,7 +94,7 @@ async function fetchSingleRequestAPIs(
 
   await sleep(randomWait(1500, 0.8, 1.2));
 
-  if (!shouldFetchLibraryHoldings(updatedResult.book, options.forceRefresh, options.cachedBookUrls)) {
+  if (!shouldFetchLibraryHoldings(updatedResult.book, options.refetch, options.cachedBookUrls)) {
     return {
       bookmeterUrl: updatedResult.book.bookmeter_url,
       updatedBook: updatedResult.book
@@ -119,7 +119,7 @@ export async function fetchBiblioInfo(
   try {
     const mathLibIsbnList = await configMathlibBookList("ja", client);
     const booksToFetch = new Map(
-      Array.from(booklist.entries()).filter(([, book]) => shouldFetchBibliographicData(book, options.forceRefresh))
+      Array.from(booklist.entries()).filter(([, book]) => shouldFetchBibliographicData(book, options.refetch))
     );
 
     let bookInfoList: FetchResult[] = [];

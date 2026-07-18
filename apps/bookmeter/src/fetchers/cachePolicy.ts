@@ -23,8 +23,8 @@ export function hasCompleteCachedBiblio(book: Book): boolean {
   return BIBLIO_FIELDS.every((fieldName) => !isMissingFieldValue(book[fieldName]));
 }
 
-export function shouldFetchBibliographicData(book: Book, forceRefresh: boolean): boolean {
-  if (forceRefresh) {
+export function shouldFetchBibliographicData(book: Book, refetch: boolean): boolean {
+  if (refetch) {
     return true;
   }
 
@@ -33,10 +33,10 @@ export function shouldFetchBibliographicData(book: Book, forceRefresh: boolean):
 
 export function shouldFetchLibraryHoldings(
   book: Book,
-  forceRefresh: boolean,
+  refetch: boolean,
   cachedBookUrls: ReadonlySet<string>
 ): boolean {
-  if (forceRefresh) {
+  if (refetch) {
     return true;
   }
 

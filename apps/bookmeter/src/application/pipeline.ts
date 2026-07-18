@@ -126,8 +126,8 @@ export function shouldRunDownstreamPhases(
     return true;
   }
 
-  if (plan.forceRefresh) {
-    console.log("Force refresh is enabled. Downstream phases will run regardless of comparison results.");
+  if (plan.refetch || plan.ignoreDiff) {
+    console.log("Downstream phases will run regardless of comparison results (--refetch / --ignore-diff).");
     return true;
   }
 
@@ -151,7 +151,7 @@ export async function fetchBiblioPhase(
     console.log("Fetching bibliographic information");
     return await fetchBiblioInfo(latestBookList, fetcherCredentials, http, {
       cachedBookUrls,
-      forceRefresh: plan.forceRefresh
+      refetch: plan.refetch
     });
   } catch (error) {
     console.error(`Error fetching bibliographic information: ${formatErrorForLog(error)}`);
@@ -201,13 +201,13 @@ export async function crawlDescriptionPhase(
       const cachedDescription = existingDescriptions.get(identifier);
       if (cachedDescription !== undefined) {
         latestBookList.set(book.bookmeter_url, { ...book, description: cachedDescription });
-        if (!plan.forceRefresh) {
+        if (!plan.refetch) {
           continue;
         }
       }
 
       const isNewBook = newBookUrls === null || newBookUrls.has(book.bookmeter_url);
-      if (!plan.forceRefresh && !isNewBook) {
+      if (!plan.refetch && !isNewBook) {
         continue;
       }
 

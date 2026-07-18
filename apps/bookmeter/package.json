@@ -32,8 +32,8 @@
     "type-check": "tsc --pretty --noEmit",
     "format": "prettier --write .",
     "exec": "tsx",
-    "stacked": "tsx src/index.ts full stacked",
-    "wish": "tsx src/index.ts full wish",
+    "stacked": "tsx src/index.ts sync stacked",
+    "wish": "tsx src/index.ts sync wish",
     "test": "vitest run",
     "test:watch": "vitest"
   },
