@@ -1,4 +1,5 @@
 bookmeter_url,isbn_or_asin,book_title,author,publisher,published_date,exist_in_sophia,exist_in_utokyo,sophia_opac,utokyo_opac,sophia_mathlib_opac
+https://bookmeter.com/books/14906235,4322134637,ファイナンス機械学習 : 金融市場分析を変える機械学習アルゴリズムの理論と実践,"LópezdePrado,MarcosMailoc 長尾,慎太郎 鹿子木,亨紀 大和証券投資信託委託株式会社",きんざい,201912,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB29344035,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB29344035,
 https://bookmeter.com/books/20718495,4385227357,現代評論キーワード講義 : 基本用語から最新概念まで,,三省堂,202304,No,No,,,
 https://bookmeter.com/books/147529,4897978238,"メインフレーム実践ハンドブック : z/OS(MVS),MSP,VOS 3のしくみと使い方","神居,俊哉 高尾,司",リックテレコム,200903,No,No,,,
 https://bookmeter.com/books/11494052,4774187291,進化する銀行システム : 24時間365日動かすメインフレームの設計思想 / Software Design plusシリーズ,"星野, 武史, 1960-,花井, 志生,星野武史 著,花井志生 監修",技術評論社,"Tue, 7 Mar 2017 01:15:06 +0900",No,No,,,
