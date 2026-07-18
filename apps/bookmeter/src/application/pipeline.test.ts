@@ -1,18 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Browser } from "puppeteer";
-
 import { Ok } from "../libs/lib";
-
-vi.mock("../scrapers/kinokuniya", async () => {
-  const actual = await vi.importActual<typeof import("../scrapers/kinokuniya")>("../scrapers/kinokuniya");
-
-  return {
-    ...actual,
-    fetchKinokuniyaDescription: vi.fn()
-  };
-});
-
 import { fetchKinokuniyaDescription } from "../scrapers/kinokuniya";
 
 import { crawlDescriptionPhase, shouldRunDownstreamPhases } from "./pipeline";
@@ -21,10 +9,21 @@ import type { ExecutionPlan } from "./executionMode";
 import type { BookRepository } from "../db/bookRepository";
 import type { Book, BookList } from "../domain/book";
 import type { ISBN10 } from "../domain/isbn";
+import type * as Kinokuniya from "../scrapers/kinokuniya";
+import type { Browser } from "puppeteer";
+
+vi.mock("../scrapers/kinokuniya", async () => {
+  const actual = await vi.importActual<typeof Kinokuniya>("../scrapers/kinokuniya");
+
+  return {
+    ...actual,
+    fetchKinokuniyaDescription: vi.fn()
+  };
+});
 
 const makeExecutionPlan = (overrides: Partial<ExecutionPlan> = {}): ExecutionPlan => {
   return {
-    refetch: false,
+    refetch: new Set(),
     ignoreDiff: false,
     target: "stacked",
     userId: "1003258",
@@ -100,7 +99,7 @@ beforeEach(() => {
 
 describe("shouldRunDownstreamPhases", () => {
   it("continues when refetch is enabled even if the list is unchanged", () => {
-    const plan = makeExecutionPlan({ refetch: true });
+    const plan = makeExecutionPlan({ refetch: new Set(["holdings"]) });
     const bookList = toBookList(["same-1", "same-2"]);
 
     expect(shouldRunDownstreamPhases(plan, bookList, bookList)).toBe(true);
@@ -128,8 +127,8 @@ describe("shouldRunDownstreamPhases", () => {
 });
 
 describe("crawlDescriptionPhase", () => {
-  it("skips fetching for existing books without cached descriptions when refetch is disabled", async () => {
-    const plan = makeExecutionPlan({ refetch: false });
+  it("skips fetching for existing books without cached descriptions in a remote run", async () => {
+    const plan = makeExecutionPlan();
     const latestBookList = toBookList(["existing-book"]);
     const prevBookList = toBookList(["existing-book"]);
     const { browser, page, repo, updateDescription } = createDescriptionTestContext();
@@ -142,7 +141,7 @@ describe("crawlDescriptionPhase", () => {
   });
 
   it("fetches descriptions for new books when refetch is disabled", async () => {
-    const plan = makeExecutionPlan({ refetch: false });
+    const plan = makeExecutionPlan();
     const latestBookList = toBookList(["new-book"]);
     const prevBookList = toBookList(["existing-book"]);
     const { browser, repo, updateDescription } = createDescriptionTestContext();
@@ -155,7 +154,7 @@ describe("crawlDescriptionPhase", () => {
   });
 
   it("fetches descriptions for existing books when refetch is enabled", async () => {
-    const plan = makeExecutionPlan({ refetch: true });
+    const plan = makeExecutionPlan({ refetch: new Set(["description"]) });
     const latestBookList = toBookList(["existing-book"]);
     const prevBookList = toBookList(["existing-book"]);
     const { browser, repo } = createDescriptionTestContext();
@@ -166,12 +165,37 @@ describe("crawlDescriptionPhase", () => {
   });
 
   it("treats all books as new when the previous snapshot is missing", async () => {
-    const plan = makeExecutionPlan({ refetch: false });
+    const plan = makeExecutionPlan();
     const latestBookList = toBookList(["first-run-book"]);
     const { browser, repo } = createDescriptionTestContext();
 
     await crawlDescriptionPhase(plan, latestBookList, null, repo, browser);
 
     expect(fetchKinokuniyaDescriptionMock).toHaveBeenCalledOnce();
+  });
+
+  it("fills a missing description for an existing book in a local-cache run", async () => {
+    const plan = makeExecutionPlan({ scrape: { type: "local-cache" } });
+    const latestBookList = toBookList(["existing-book"]);
+    const prevBookList = toBookList(["existing-book"]);
+    const { browser, repo } = createDescriptionTestContext();
+
+    await crawlDescriptionPhase(plan, latestBookList, prevBookList, repo, browser);
+
+    expect(fetchKinokuniyaDescriptionMock).toHaveBeenCalledOnce();
+    expect(latestBookList.get("existing-book")?.description).toBe("fetched-description");
+  });
+
+  it("does not refetch a cached description when only biblio and holdings are selected", async () => {
+    const plan = makeExecutionPlan({ refetch: new Set(["biblio", "holdings"]) });
+    const latestBookList = toBookList(["existing-book"]);
+    const prevBookList = toBookList(["existing-book"]);
+    const cachedBook = { ...makeBook("existing-book"), description: "cached-description" };
+    const { browser, repo } = createDescriptionTestContext(new Map([["existing-book", cachedBook]]));
+
+    await crawlDescriptionPhase(plan, latestBookList, prevBookList, repo, browser);
+
+    expect(fetchKinokuniyaDescriptionMock).not.toHaveBeenCalled();
+    expect(latestBookList.get("existing-book")?.description).toBe("cached-description");
   });
 });

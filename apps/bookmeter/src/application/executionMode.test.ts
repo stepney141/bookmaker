@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseCliArgs, resolveExecutionPlan } from "./executionMode";
+import { needsBrowser, parseCliArgs, resolveExecutionPlan } from "./executionMode";
 
 const unwrapOk = <T>(result: { ok: true; value: T } | { ok: false; err: Error }): T => {
   if (result.ok) {
@@ -20,7 +20,7 @@ describe("resolveExecutionPlan", () => {
     );
 
     expect(plan.modeName).toBe("scrape");
-    expect(plan.refetch).toBe(false);
+    expect(plan.refetch).toEqual(new Set());
     expect(plan.ignoreDiff).toBe(false);
     expect(plan.scrape).toEqual({ type: "remote", doLogin: true });
     expect(plan.phases.compare).toBe(false);
@@ -44,7 +44,7 @@ describe("resolveExecutionPlan", () => {
     );
 
     expect(plan.modeName).toBe("custom");
-    expect(plan.refetch).toBe(false);
+    expect(plan.refetch).toEqual(new Set());
     expect(plan.ignoreDiff).toBe(false);
     expect(plan.scrape).toEqual({ type: "local-cache" });
     expect(plan.phases.compare).toBe(false);
@@ -72,6 +72,18 @@ describe("resolveExecutionPlan", () => {
 
     expect(result.err.context.detail).toBe("Custom execution mode with uploadDb requires persist");
   });
+
+  it("resolves selected refetch services as a set", () => {
+    const plan = unwrapOk(
+      resolveExecutionPlan({
+        target: "wish",
+        refetch: ["biblio"],
+        execution: { type: "sync" }
+      })
+    );
+
+    expect(plan.refetch).toEqual(new Set(["biblio"]));
+  });
 });
 
 describe("parseCliArgs", () => {
@@ -79,7 +91,7 @@ describe("parseCliArgs", () => {
     expect(unwrapOk(parseCliArgs(["node", "bookmeter", "scrape", "stacked"]))).toEqual({
       type: "run",
       option: {
-        refetch: false,
+        refetch: [],
         ignoreDiff: false,
         target: "stacked",
         execution: { type: "scrape", doLogin: true }
@@ -90,12 +102,22 @@ describe("parseCliArgs", () => {
   it("parses subcommand flags into execution options", () => {
     expect(
       unwrapOk(
-        parseCliArgs(["node", "bookmeter", "sync", "wish", "--user-id", "42", "--no-login", "--refetch", "--ignore-diff"])
+        parseCliArgs([
+          "node",
+          "bookmeter",
+          "sync",
+          "wish",
+          "--user-id",
+          "42",
+          "--no-login",
+          "--refetch",
+          "--ignore-diff"
+        ])
       )
     ).toEqual({
       type: "run",
       option: {
-        refetch: true,
+        refetch: ["biblio", "holdings", "description"],
         ignoreDiff: true,
         target: "wish",
         userId: "42",
@@ -110,11 +132,45 @@ describe("parseCliArgs", () => {
     expect(result.ok).toBe(false);
   });
 
+  it("rejects --refetch on scrape", () => {
+    const result = parseCliArgs(["node", "bookmeter", "scrape", "wish", "--refetch"]);
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("parses one selected refetch service", () => {
+    const result = unwrapOk(parseCliArgs(["node", "bookmeter", "sync", "wish", "--refetch", "biblio"]));
+
+    expect(result.type).toBe("run");
+    if (result.type === "help") {
+      expect.fail("sync should produce a run command");
+    }
+
+    expect(result.option.refetch).toEqual(["biblio"]);
+  });
+
+  it("parses multiple selected refetch services", () => {
+    const result = unwrapOk(parseCliArgs(["node", "bookmeter", "sync", "wish", "--refetch", "biblio", "holdings"]));
+
+    expect(result.type).toBe("run");
+    if (result.type === "help") {
+      expect.fail("sync should produce a run command");
+    }
+
+    expect(result.option.refetch).toEqual(["biblio", "holdings"]);
+  });
+
+  it("rejects an unknown refetch service", () => {
+    const result = parseCliArgs(["node", "bookmeter", "sync", "wish", "--refetch", "bogus"]);
+
+    expect(result.ok).toBe(false);
+  });
+
   it("maps export to the local-cache downstream pipeline", () => {
     expect(unwrapOk(parseCliArgs(["node", "bookmeter", "export", "wish"]))).toEqual({
       type: "run",
       option: {
-        refetch: false,
+        refetch: [],
         ignoreDiff: false,
         target: "wish",
         execution: {
@@ -126,20 +182,32 @@ describe("parseCliArgs", () => {
     });
   });
 
-  it("maps enrich to the local-cache API enrichment pipeline", () => {
+  it("maps enrich to the local-cache metadata and description enrichment pipeline", () => {
     expect(unwrapOk(parseCliArgs(["node", "bookmeter", "enrich", "wish", "--refetch"]))).toEqual({
       type: "run",
       option: {
-        refetch: true,
+        refetch: ["biblio", "holdings", "description"],
         ignoreDiff: false,
         target: "wish",
         execution: {
           type: "custom",
           scrape: { type: "local-cache" },
-          enabledPhases: ["fetchBiblio", "persist", "exportCsv", "uploadDb"]
+          enabledPhases: ["fetchBiblio", "crawlDescriptions", "persist", "exportCsv", "uploadDb"]
         }
       }
     });
+  });
+
+  it("makes the enrich plan browser-backed for description completion", () => {
+    const parsed = unwrapOk(parseCliArgs(["node", "bookmeter", "enrich", "wish"]));
+    if (parsed.type === "help") {
+      expect.fail("enrich should produce a run command");
+    }
+
+    const plan = unwrapOk(resolveExecutionPlan(parsed.option));
+
+    expect(plan.phases.crawlDescriptions).toBe(true);
+    expect(needsBrowser(plan)).toBe(true);
   });
 
   it("returns help without scheduling execution", () => {

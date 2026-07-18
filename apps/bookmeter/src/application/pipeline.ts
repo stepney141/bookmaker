@@ -126,7 +126,7 @@ export function shouldRunDownstreamPhases(
     return true;
   }
 
-  if (plan.refetch || plan.ignoreDiff) {
+  if (plan.refetch.size > 0 || plan.ignoreDiff) {
     console.log("Downstream phases will run regardless of comparison results (--refetch / --ignore-diff).");
     return true;
   }
@@ -151,7 +151,8 @@ export async function fetchBiblioPhase(
     console.log("Fetching bibliographic information");
     return await fetchBiblioInfo(latestBookList, fetcherCredentials, http, {
       cachedBookUrls,
-      refetch: plan.refetch
+      refetchBiblio: plan.refetch.has("biblio"),
+      refetchHoldings: plan.refetch.has("holdings")
     });
   } catch (error) {
     console.error(`Error fetching bibliographic information: ${formatErrorForLog(error)}`);
@@ -180,6 +181,7 @@ export async function crawlDescriptionPhase(
 
   const existingDescriptions = buildExistingDescriptionMap(plan.target, repo.load(plan.target));
   console.log(`Loaded ${existingDescriptions.size} existing descriptions from database.`);
+  const refetchDescription = plan.refetch.has("description");
   const newBookUrls: Set<string> | null =
     prevBookList === null ? null : new Set([...latestBookList.keys()].filter((url) => !prevBookList.has(url)));
 
@@ -201,13 +203,13 @@ export async function crawlDescriptionPhase(
       const cachedDescription = existingDescriptions.get(identifier);
       if (cachedDescription !== undefined) {
         latestBookList.set(book.bookmeter_url, { ...book, description: cachedDescription });
-        if (!plan.refetch) {
+        if (!refetchDescription) {
           continue;
         }
       }
 
       const isNewBook = newBookUrls === null || newBookUrls.has(book.bookmeter_url);
-      if (!plan.refetch && !isNewBook) {
+      if (!refetchDescription && !isNewBook && plan.scrape.type !== "local-cache") {
         continue;
       }
 

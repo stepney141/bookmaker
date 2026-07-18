@@ -122,6 +122,8 @@ export async function main(option: MainFuncOption): Promise<boolean> {
  * tsx bookmeter/src/index.ts export wish
  * tsx bookmeter/src/index.ts enrich wish
  * tsx bookmeter/src/index.ts sync wish --refetch
+ * tsx bookmeter/src/index.ts sync wish --refetch biblio holdings
+ * tsx bookmeter/src/index.ts enrich wish --refetch description
  * tsx bookmeter/src/index.ts sync wish --user-id 42
  */
 (async () => {

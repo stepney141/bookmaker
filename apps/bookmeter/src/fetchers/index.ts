@@ -21,7 +21,8 @@ import type { Book, BookList } from "../domain/book";
 
 export type FetchBiblioInfoOptions = {
   cachedBookUrls: ReadonlySet<string>;
-  refetch: boolean;
+  refetchBiblio: boolean;
+  refetchHoldings: boolean;
 };
 
 /** 単一書籍の fetcher 関数シグネチャ */
@@ -94,7 +95,7 @@ async function fetchSingleRequestAPIs(
 
   await sleep(randomWait(1500, 0.8, 1.2));
 
-  if (!shouldFetchLibraryHoldings(updatedResult.book, options.refetch, options.cachedBookUrls)) {
+  if (!shouldFetchLibraryHoldings(updatedResult.book, options.refetchHoldings, options.cachedBookUrls)) {
     return {
       bookmeterUrl: updatedResult.book.bookmeter_url,
       updatedBook: updatedResult.book
@@ -119,8 +120,15 @@ export async function fetchBiblioInfo(
   try {
     const mathLibIsbnList = await configMathlibBookList("ja", client);
     const booksToFetch = new Map(
-      Array.from(booklist.entries()).filter(([, book]) => shouldFetchBibliographicData(book, options.refetch))
+      Array.from(booklist.entries()).filter(([, book]) => shouldFetchBibliographicData(book, options.refetchBiblio))
     );
+    const holdingsOnlyBooks = Array.from(booklist.entries())
+      .filter(
+        ([bookmeterUrl, book]) =>
+          !booksToFetch.has(bookmeterUrl) &&
+          shouldFetchLibraryHoldings(book, options.refetchHoldings, options.cachedBookUrls)
+      )
+      .map(([, book]) => ({ book, status: "found" as const }));
 
     let bookInfoList: FetchResult[] = [];
     if (booksToFetch.size > 0) {
@@ -138,6 +146,7 @@ export async function fetchBiblioInfo(
         }));
       }
     }
+    bookInfoList = [...bookInfoList, ...holdingsOnlyBooks];
 
     const ps = PromiseQueue();
     for (const bookInfo of bookInfoList) {

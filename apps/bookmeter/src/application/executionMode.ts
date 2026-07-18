@@ -16,6 +16,9 @@ export const DEFAULT_BOOKMETER_USER_ID = "1003258";
 export const BOOKMETER_TARGETS = ["wish", "stacked"] as const;
 export type BookmeterTarget = (typeof BOOKMETER_TARGETS)[number];
 
+export const REFETCH_SERVICES = ["biblio", "holdings", "description"] as const;
+export type RefetchService = (typeof REFETCH_SERVICES)[number];
+
 export const EXECUTION_PHASES = [
   "compare",
   "fetchBiblio",
@@ -56,7 +59,7 @@ export type ExecutionMode =
     };
 
 type SharedOption = {
-  refetch?: boolean;
+  refetch?: readonly RefetchService[];
   ignoreDiff?: boolean;
   userId?: string;
   outputFilePath?: OutputFilePath | null;
@@ -77,7 +80,7 @@ export type ParsedCliCommand =
     };
 
 export type ExecutionPlan = {
-  refetch: boolean;
+  refetch: ReadonlySet<RefetchService>;
   ignoreDiff: boolean;
   target: BookmeterTarget;
   userId: string;
@@ -112,7 +115,7 @@ export class ExecutionModeError extends BaseError {
 const NO_PHASES = createPhaseState([]);
 const SYNC_PHASES = createPhaseState(EXECUTION_PHASES);
 const EXPORT_PHASES = ["persist", "exportCsv", "uploadDb"] as const;
-const ENRICH_PHASES = ["fetchBiblio", "persist", "exportCsv", "uploadDb"] as const;
+const ENRICH_PHASES = ["fetchBiblio", "crawlDescriptions", "persist", "exportCsv", "uploadDb"] as const;
 
 function createPhaseState(enabledPhases: readonly ExecutionPhase[]): ExecutionPhaseState {
   const enabled = new Set(enabledPhases);
@@ -185,7 +188,7 @@ export function resolveExecutionPlan(option: MainFuncOption): Result<ExecutionPl
   }
 
   return Ok({
-    refetch: option.refetch ?? false,
+    refetch: new Set(option.refetch ?? []),
     ignoreDiff: option.ignoreDiff ?? false,
     target: option.target,
     userId: option.userId ?? DEFAULT_BOOKMETER_USER_ID,
@@ -224,9 +227,9 @@ function configureNoLoginOption<T>(parser: Argv<T>): Argv<T> {
 
 function configureRefetchOption<T>(parser: Argv<T>): Argv<T> {
   return parser.option("refetch", {
-    type: "boolean",
-    default: false,
-    description: "Ignore cached bibliographic, holding, and description data and fetch them again."
+    type: "array",
+    choices: REFETCH_SERVICES,
+    description: "Ignore cached data for selected services. Omit services to refetch all of them."
   });
 }
 
@@ -261,6 +264,22 @@ function extractLogin(value: unknown): boolean {
 
 function extractBooleanFlag(value: unknown): boolean {
   return value === true;
+}
+
+function isRefetchService(value: unknown): value is RefetchService {
+  return typeof value === "string" && REFETCH_SERVICES.some((service) => service === value);
+}
+
+function extractRefetchSelection(value: unknown): readonly RefetchService[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  if (value.length === 0) {
+    return [...REFETCH_SERVICES];
+  }
+
+  return value.filter(isRefetchService);
 }
 
 function buildExecutionModeFromSubcommand(
@@ -299,7 +318,7 @@ export function parseCliArgs(argv: string[]): Result<ParsedCliCommand, Execution
     }
 
     parsedOption = {
-      refetch: extractBooleanFlag(args.refetch),
+      refetch: extractRefetchSelection(args.refetch),
       ignoreDiff: extractBooleanFlag(args.ignoreDiff),
       target: targetResult.value,
       userId: extractUserId(args.userId),
@@ -340,11 +359,11 @@ export function parseCliArgs(argv: string[]): Result<ParsedCliCommand, Execution
     )
     .command(
       "enrich <target>",
-      "Load the local snapshot, fetch bibliographic data via APIs, then persist and export CSV",
+      "Load the local snapshot, fill missing metadata and descriptions, then persist and export CSV",
       (command) =>
         configureRefetchOption(configureUserIdOption(configureTargetPositional(command))).example(
           "$0 enrich wish --refetch",
-          "Refetch API-backed metadata for every book in the local wish snapshot"
+          "Refetch metadata and descriptions for every book in the local wish snapshot"
         ),
       (args) => {
         captureOption("enrich", args);
@@ -428,8 +447,9 @@ export function needsBrowser(plan: ExecutionPlan): boolean {
 export function describeExecutionPlan(plan: ExecutionPlan): string {
   const scrapeLabel = plan.scrape.type === "remote" ? `remote(login=${String(plan.scrape.doLogin)})` : "local-cache";
   const enabledPhases = EXECUTION_PHASES.filter((phase) => plan.phases[phase]);
+  const refetchLabel = REFETCH_SERVICES.filter((service) => plan.refetch.has(service)).join("+") || "none";
 
-  return `mode=${plan.modeName}, target=${plan.target}, refetch=${String(plan.refetch)}, ignoreDiff=${String(plan.ignoreDiff)}, scrape=${scrapeLabel}, phases=${
+  return `mode=${plan.modeName}, target=${plan.target}, refetch=${refetchLabel}, ignoreDiff=${String(plan.ignoreDiff)}, scrape=${scrapeLabel}, phases=${
     enabledPhases.length > 0 ? enabledPhases.join(" -> ") : "none"
   }`;
 }
