@@ -178,6 +178,32 @@ describe("reading recommender service", () => {
     }
   });
 
+  it("syncs the source before selecting a random recommendation", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "reading-recommender-service-"));
+    tempDirs.push(dir);
+    const sourceDbPath = join(dir, "source.sqlite");
+    const appDb = openAppDb(join(dir, "app.sqlite"));
+    createSourceDbWithBooks(sourceDbPath, [
+      book({ bookmeterUrl: "book-1", title: "候補1", remoteRank: 3 }),
+      book({ bookmeterUrl: "book-2", title: "候補2", remoteRank: 2 }),
+      book({ bookmeterUrl: "book-3", title: "候補3", remoteRank: 1 })
+    ]);
+    const service = createReadingRecommenderService({ appDb, booksDbPath: sourceDbPath });
+
+    try {
+      const before = await service.current();
+      insertStackedBook(sourceDbPath, book({ bookmeterUrl: "new-book", title: "新しい候補", remoteRank: 4 }));
+      const result = await service.randomize();
+
+      expect(result.status).toBe("selected");
+      expect(result.status === "selected" ? result.current.primary?.bookmeterUrl : null).toBe("new-book");
+      expect(result.status === "selected" ? result.current.cycleId : null).toBe(before?.cycleId);
+      expect(result.status === "selected" ? result.current.createdAt : null).toBe(before?.createdAt);
+    } finally {
+      service.close();
+    }
+  });
+
   it("does not create the same scheduled cycle twice", async () => {
     const dir = mkdtempSync(join(tmpdir(), "reading-recommender-service-"));
     tempDirs.push(dir);
@@ -219,9 +245,9 @@ describe("reading recommender service", () => {
       const unchanged = await service.runIfSourceChanged();
       insertStackedBook(sourceDbPath, book({ bookmeterUrl: "new-book", title: "前倒し推薦", remoteRank: 8 }));
       const changed = await service.runIfSourceChanged();
-      const latestCycle = appDb.db
-        .prepare("SELECT reason FROM recommendation_cycle ORDER BY id DESC LIMIT 1")
-        .get() as { readonly reason: string } | undefined;
+      const latestCycle = appDb.db.prepare("SELECT reason FROM recommendation_cycle ORDER BY id DESC LIMIT 1").get() as
+        | { readonly reason: string }
+        | undefined;
 
       expect(unchanged.changed).toBe(false);
       expect(changed.changed).toBe(true);

@@ -4,7 +4,7 @@ import { syncSourceBooks, syncSourceBooksIfChanged } from "../db/sync";
 import { createRelatedSemanticScores } from "../embedding/related";
 import { ensureBookEmbeddings } from "../embedding/repository";
 import { createSemanticScores, embedQuery } from "../embedding/search";
-import { promoteRecommendation, runRecommendation, skipRecommendation } from "../recommendation/engine";
+import { promoteRecommendation, randomizeRecommendation, runRecommendation } from "../recommendation/engine";
 import { findRelatedBooks } from "../recommendation/relatedBooks";
 import { getCurrentRecommendation, getLatestScheduledFor as selectLatestScheduledFor, hasScheduledCycle } from "../recommendation/store";
 import { searchBooks } from "../retrieval/search";
@@ -26,13 +26,17 @@ export type SourceChangeRunResult = {
   readonly current: CurrentRecommendation | null;
 };
 
+export type RandomizeResult =
+  | { readonly status: "selected"; readonly current: CurrentRecommendation }
+  | { readonly status: "no_active_recommendation" | "no_random_candidate" };
+
 export type ReadingRecommenderService = {
   readonly sync: () => void;
   readonly run: (reason: RecommendationReason) => Promise<CurrentRecommendation | null>;
   readonly runScheduled: (scheduledFor: string) => Promise<CurrentRecommendation | null>;
   readonly runIfSourceChanged: () => Promise<SourceChangeRunResult>;
   readonly current: () => Promise<CurrentRecommendation | null>;
-  readonly skip: () => Promise<CurrentRecommendation | null>;
+  readonly randomize: () => Promise<RandomizeResult>;
   readonly promote: (bookmeterUrl: string) => Promise<CurrentRecommendation | null>;
   readonly search: (query: string, limit?: number, filters?: SearchFilters) => Promise<readonly SearchResult[]>;
   readonly diagnostics: () => readonly RowOrderDiagnostics[];
@@ -180,11 +184,24 @@ export function createReadingRecommenderService(input: {
       return enqueueMutation(currentInternal);
     },
 
-    async skip() {
-      return enqueueMutation(() => {
+    async randomize() {
+      return enqueueMutation(async () => {
+        const sourceBooks = loadCurrentSourceBooks();
+        syncSourceBooksIfChanged({ db: input.appDb.db, booksDbPath: input.booksDbPath, sourceBooks });
         const settings = getSettings(input.appDb.db);
-        skipRecommendation({ db: input.appDb.db, settings });
-        return currentWithRelated(input.appDb, settings.relatedCount, input.embeddingProvider);
+        const result = randomizeRecommendation({ db: input.appDb.db, settings, randomValue: Math.random() });
+
+        if (result.status !== "selected") {
+          return result;
+        }
+
+        const current = await currentWithRelated(input.appDb, settings.relatedCount, input.embeddingProvider);
+
+        if (!current) {
+          throw new Error("Random recommendation was saved without an active recommendation");
+        }
+
+        return { status: "selected" as const, current };
       });
     },
 

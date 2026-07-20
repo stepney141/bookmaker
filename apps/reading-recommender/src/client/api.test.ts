@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { promoteRecommendation, runRecommendation, searchBooks, skipRecommendation } from "./api";
+import { ApiRequestError, promoteRecommendation, randomizeRecommendation, runRecommendation, searchBooks } from "./api";
 
 function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
@@ -30,15 +30,44 @@ describe("client API", () => {
     const fetchMock = stubFetch();
 
     await runRecommendation();
-    await skipRecommendation();
+    await randomizeRecommendation();
 
     const runInit = fetchMock.mock.calls[0]?.[1];
-    const skipInit = fetchMock.mock.calls[1]?.[1];
+    const randomInit = fetchMock.mock.calls[1]?.[1];
 
     expect(runInit?.method).toBe("POST");
-    expect(skipInit?.method).toBe("POST");
+    expect(randomInit?.method).toBe("POST");
     expect(getHeaders(runInit).has("Content-Type")).toBe(false);
-    expect(getHeaders(skipInit).has("Content-Type")).toBe(false);
+    expect(getHeaders(randomInit).has("Content-Type")).toBe(false);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/recommendations/random");
+  });
+
+  it("exposes the API error code for an unavailable random candidate", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ error: "no_random_candidate" }), {
+            headers: { "Content-Type": "application/json" },
+            status: 409
+          })
+        )
+      )
+    );
+
+    try {
+      await randomizeRecommendation();
+      expect.fail("Expected randomizeRecommendation to reject");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ApiRequestError);
+
+      if (!(error instanceof ApiRequestError)) {
+        return;
+      }
+
+      expect(error.status).toBe(409);
+      expect(error.code).toBe("no_random_candidate");
+    }
   });
 
   it("sends a JSON content type when the request has a JSON body", async () => {

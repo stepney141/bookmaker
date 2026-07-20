@@ -26,6 +26,34 @@ export type RecommendationSelection = {
   readonly secondaries: readonly RecommendationBook[];
 };
 
+function insertRecommendationItems(input: {
+  readonly db: Database.Database;
+  readonly cycleId: number;
+  readonly selection: RecommendationSelection;
+}): void {
+  const items = [
+    { slot: "primary" as const, rank: 1, book: input.selection.primary },
+    ...input.selection.secondaries.map((book, index) => ({ slot: "secondary" as const, rank: index + 1, book }))
+  ];
+
+  for (const item of items) {
+    input.db
+      .prepare(
+        `INSERT INTO recommendation_item (cycle_id, slot, rank, bookmeter_url, score, score_breakdown_json, explanation_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        input.cycleId,
+        item.slot,
+        item.rank,
+        item.book.bookmeterUrl,
+        item.book.score,
+        JSON.stringify(item.book.scoreBreakdown),
+        JSON.stringify(item.book.reasons)
+      );
+  }
+}
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -130,27 +158,7 @@ export function saveRecommendationSelection(input: {
       .prepare("INSERT INTO recommendation_cycle (status, reason, scheduled_for, created_at, activated_at) VALUES (?, ?, ?, ?, ?)")
       .run("active", input.reason, input.scheduledFor ?? null, nowIso(), nowIso());
     const cycleId = Number(cycle.lastInsertRowid);
-    const items = [
-      { slot: "primary" as const, rank: 1, book: input.selection.primary },
-      ...input.selection.secondaries.map((book, index) => ({ slot: "secondary" as const, rank: index + 1, book }))
-    ];
-
-    for (const item of items) {
-      input.db
-        .prepare(
-          `INSERT INTO recommendation_item (cycle_id, slot, rank, bookmeter_url, score, score_breakdown_json, explanation_json)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
-        )
-        .run(
-          cycleId,
-          item.slot,
-          item.rank,
-          item.book.bookmeterUrl,
-          item.book.score,
-          JSON.stringify(item.book.scoreBreakdown),
-          JSON.stringify(item.book.reasons)
-        );
-    }
+    insertRecommendationItems({ db: input.db, cycleId, selection: input.selection });
 
     insertRecommendationEvent({
       db: input.db,
@@ -165,4 +173,13 @@ export function saveRecommendationSelection(input: {
   });
 
   return transaction();
+}
+
+export function replaceRecommendationItems(input: {
+  readonly db: Database.Database;
+  readonly cycleId: number;
+  readonly selection: RecommendationSelection;
+}): void {
+  input.db.prepare("DELETE FROM recommendation_item WHERE cycle_id = ?").run(input.cycleId);
+  insertRecommendationItems(input);
 }

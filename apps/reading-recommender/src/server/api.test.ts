@@ -8,11 +8,16 @@ import type { ReadingRecommenderService } from "./service";
 
 function createService(): {
   readonly service: ReadingRecommenderService;
+  readonly randomize: ReturnType<typeof vi.fn<ReadingRecommenderService["randomize"]>>;
   readonly search: ReturnType<typeof vi.fn<ReadingRecommenderService["search"]>>;
 } {
+  const randomize = vi.fn<ReadingRecommenderService["randomize"]>(() =>
+    Promise.resolve({ status: "no_random_candidate" })
+  );
   const search = vi.fn<ReadingRecommenderService["search"]>(() => Promise.resolve([]));
 
   return {
+    randomize,
     search,
     service: {
       sync() {},
@@ -20,7 +25,7 @@ function createService(): {
       runScheduled: () => Promise.resolve(null),
       runIfSourceChanged: () => Promise.resolve({ changed: false, current: null }),
       current: () => Promise.resolve(null),
-      skip: () => Promise.resolve(null),
+      randomize,
       promote: () => Promise.resolve(null),
       search,
       diagnostics: () => [],
@@ -35,6 +40,46 @@ function createService(): {
 }
 
 describe("search API", () => {
+  it("returns the updated recommendation after random selection", async () => {
+    const { service, randomize } = createService();
+    randomize.mockResolvedValue({
+      status: "selected",
+      current: {
+        cycleId: 7,
+        status: "active",
+        reason: "scheduled",
+        createdAt: "2026-07-20T00:00:00.000Z",
+        primary: null,
+        secondaries: [],
+        relatedBooks: []
+      }
+    });
+    const app = await createApiServer(service);
+
+    try {
+      const response = await app.inject({ method: "POST", url: "/api/recommendations/random" });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({ cycleId: 7, reason: "scheduled" });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("returns a conflict when no random candidate is available", async () => {
+    const { service } = createService();
+    const app = await createApiServer(service);
+
+    try {
+      const response = await app.inject({ method: "POST", url: "/api/recommendations/random" });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toEqual({ error: "no_random_candidate" });
+    } finally {
+      await app.close();
+    }
+  });
+
   it("accepts a search limit up to 100", async () => {
     const { service, search } = createService();
     const app = await createApiServer(service);

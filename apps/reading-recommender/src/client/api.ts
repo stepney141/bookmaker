@@ -6,6 +6,26 @@ import type {
   SearchResult
 } from "../shared/types";
 
+type ApiErrorResponse = {
+  readonly error: string;
+};
+
+export class ApiRequestError extends Error {
+  readonly status: number;
+  readonly code: string;
+
+  constructor(status: number, code: string) {
+    super(`Request failed: ${status} ${code}`);
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
+  return typeof value === "object" && value !== null && "error" in value && typeof value.error === "string";
+}
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
 
@@ -18,11 +38,17 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
     headers
   });
 
+  const payload: unknown = await response.json();
+
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    if (!isApiErrorResponse(payload)) {
+      throw new Error(`Request failed with an invalid error response: ${response.status}`);
+    }
+
+    throw new ApiRequestError(response.status, payload.error);
   }
 
-  return (await response.json()) as T;
+  return payload as T;
 }
 
 export function fetchCurrentRecommendation(): Promise<CurrentRecommendation | null> {
@@ -33,8 +59,8 @@ export function runRecommendation(): Promise<CurrentRecommendation | null> {
   return requestJson<CurrentRecommendation | null>("/api/recommendations/run", { method: "POST" });
 }
 
-export function skipRecommendation(): Promise<CurrentRecommendation | null> {
-  return requestJson<CurrentRecommendation | null>("/api/recommendations/skip", { method: "POST" });
+export function randomizeRecommendation(): Promise<CurrentRecommendation> {
+  return requestJson<CurrentRecommendation>("/api/recommendations/random", { method: "POST" });
 }
 
 export function promoteRecommendation(bookmeterUrl: string): Promise<CurrentRecommendation | null> {

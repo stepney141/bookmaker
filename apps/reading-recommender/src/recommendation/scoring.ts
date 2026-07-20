@@ -288,6 +288,29 @@ export function findEarlierSeriesCandidate(input: {
   );
 }
 
+export function filterEarliestSeriesCandidates(candidates: readonly ScoredBook[]): readonly ScoredBook[] {
+  const contexts = seriesOrderContexts(candidates);
+  const earliestOrderBySeries = new Map<string, number>();
+
+  for (const context of contexts.values()) {
+    const earliestOrder = earliestOrderBySeries.get(context.key);
+
+    if (earliestOrder === undefined || context.order < earliestOrder) {
+      earliestOrderBySeries.set(context.key, context.order);
+    }
+  }
+
+  return candidates.filter((candidate) => {
+    const context = contexts.get(candidate.bookmeterUrl);
+
+    if (!context) {
+      return true;
+    }
+
+    return context.order === earliestOrderBySeries.get(context.key);
+  });
+}
+
 export function scoreBooks(books: readonly BookSnapshot[], settings: AppSettings): readonly ScoredBook[] {
   const maxRemoteRank = books.reduce((maxRank, book) => Math.max(maxRank, book.remoteRank), 1);
   const contexts = seriesOrderContexts(books);

@@ -73,7 +73,15 @@ export async function createApiServer(service: ReadingRecommenderService): Promi
 
   app.get("/api/recommendations/current", () => service.current());
   app.post("/api/recommendations/run", () => service.run("manual"));
-  app.post("/api/recommendations/skip", () => service.skip());
+  app.post("/api/recommendations/random", async (_request, reply) => {
+    const result = await service.randomize();
+
+    if (result.status !== "selected") {
+      return reply.code(409).send({ error: result.status });
+    }
+
+    return result.current;
+  });
   app.post("/api/recommendations/promote", (request, reply) => {
     const parsed = promoteSchema.safeParse(request.body);
 

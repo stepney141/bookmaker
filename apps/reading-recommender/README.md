@@ -7,12 +7,13 @@
 ## 主な機能
 
 1. **今週読む本の推薦** — 主推薦 1 冊と副推薦 2 冊を表示する
-2. **推薦の継続判定** — 主推薦が最新の `wish ∪ stacked` に残っている限り、次回更新でも主推薦を維持する
-3. **読了判定** — 主推薦が最新の共有 SQLite から消えた場合、読了済みとして新しい推薦を作る
-4. **関連書籍の表示** — 主推薦と近い内容の本を関連書籍として表示する
-5. **書籍検索** — キーワードや自然文 query に対して、FTS5、metadata、任意の embedding を使って関連書籍を検索する
-6. **rowid 診断** — `wish` と `stacked` の rowid 先頭・末尾を表示し、読書メーター上の表示順を確認する
-7. **設定管理** — 推薦曜日、推薦時刻、件数、`remote_rank` の解釈を app DB に保存する
+2. **重み付きランダム推薦** — 表示中の本とシリーズの後続巻を除き、score に比例した確率で別の主推薦を選ぶ
+3. **推薦の継続判定** — 主推薦が最新の `wish ∪ stacked` に残っている限り、次回更新でも主推薦を維持する
+4. **読了判定** — 主推薦が最新の共有 SQLite から消えた場合、読了済みとして新しい推薦を作る
+5. **関連書籍の表示** — 主推薦と近い内容の本を関連書籍として表示する
+6. **書籍検索** — キーワードや自然文 query に対して、FTS5、metadata、任意の embedding を使って関連書籍を検索する
+7. **rowid 診断** — `wish` と `stacked` の rowid 先頭・末尾を表示し、読書メーター上の表示順を確認する
+8. **設定管理** — 推薦曜日、推薦時刻、件数、`remote_rank` の解釈を app DB に保存する
 
 現在の実装は、実装計画の第 1-5 段階の一部を含む MVP である。OpenAI embedding は環境変数がある場合だけ検索 ranking と関連書籍 ranking に加わり、未設定または失敗時は FTS5、metadata、語彙一致に戻る。週次 scheduler と file watcher は app process 内で動作し、Android push 通知と認証は後続段階で追加する。
 
@@ -101,7 +102,7 @@ docker compose up -d reading-recommender
 | `GET /api/health` | API の疎通確認 |
 | `GET /api/recommendations/current` | 現在の主推薦、副推薦、関連書籍を返す |
 | `POST /api/recommendations/run` | source sync と推薦更新を手動実行する |
-| `POST /api/recommendations/skip` | 現在の主推薦を skip し、新しい推薦を作る |
+| `POST /api/recommendations/random` | 現在の推薦日を維持し、主推薦を重み付きランダムで選び直す |
 | `POST /api/recommendations/promote` | 副推薦または任意の現行書籍を主推薦に昇格する |
 | `GET /api/search?q=...` | 書籍を検索する |
 | `GET /api/books/diagnostics/row-order` | `wish` と `stacked` の rowid 診断を返す |
@@ -124,6 +125,8 @@ docker compose up -d reading-recommender
 
 初期 score は、積読本の優先、読書メーター上の表示順、書誌 metadata の充実度を使う。`rowid` は履歴的な登録順ではなく、最後の `bookmeter` 同期時の読書メーター表示順を反映するため、app setting の `remoteOrderAgeDirection` で解釈を切り替える。
 
+「ランダムに選ぶ」は、最新の `wish ∪ stacked` から表示中の主推薦と副推薦を除き、各候補を `score / 候補全体の score 合計` の確率で抽出する。同一シリーズに先行巻が残っている後続巻も除外し、選んだ主推薦以外の副推薦は score 順で作り直す。この操作は現在の推薦 cycle を更新するため、cycle ID、推薦日、読了予定日は変わらず、変更前後の推薦は `primary_randomized` event に記録される。抽出対象がなければ推薦を変更せず、API は `409 no_random_candidate` を返す。
+
 ## データベース
 
 このアプリは 2 つの SQLite を使う。
@@ -143,7 +146,7 @@ app DB は初回起動時に migration を実行する。現在の主な table �
 | `book_embedding` | provider ごとの embedding cache |
 | `recommendation_cycle` | 推薦 bundle の cycle |
 | `recommendation_item` | 主推薦・副推薦の item |
-| `recommendation_event` | skip、promote、読了判定などの event |
+| `recommendation_event` | ランダム選択、promote、読了判定などの event |
 | `push_target` | 後続段階の push 通知登録先 |
 | `app_setting` | 推薦時刻、件数、rowid 解釈などの設定 |
 

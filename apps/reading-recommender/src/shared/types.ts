@@ -11,7 +11,7 @@ export type SearchFilters = {
 
 export type RemoteOrderAgeDirection = "larger_is_older" | "larger_is_newer" | "disabled";
 
-export type RecommendationReason = "initial" | "manual" | "scheduled" | "source_changed" | "skip" | "promote";
+export type RecommendationReason = "initial" | "manual" | "scheduled" | "source_changed" | "promote";
 
 export type RecommendationSlot = "primary" | "secondary";
 

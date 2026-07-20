@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { Navigate, NavLink, Route, Routes } from "react-router";
 
 import {
+  ApiRequestError,
   fetchCurrentRecommendation,
   fetchDiagnostics,
   fetchSettings,
   promoteRecommendation,
+  randomizeRecommendation,
   runRecommendation,
-  skipRecommendation,
   updateSettings
 } from "./api";
 import { BookDetailDialog, BookPanel, OpacLinks, isActivationKey } from "./components/bookUi";
@@ -47,20 +48,32 @@ function CurrentView(input: {
   readonly settings: AppSettings | null;
   readonly loading: boolean;
   readonly onRun: () => Promise<void>;
-  readonly onSkip: () => Promise<void>;
+  readonly onRandomize: () => Promise<void>;
   readonly onPromote: (bookmeterUrl: string) => Promise<void>;
 }): JSX.Element {
   const [selectedRelatedBook, setSelectedRelatedBook] = useState<CurrentRecommendation["relatedBooks"][number] | null>(
     null
   );
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionPending, setActionPending] = useState(false);
 
   async function runAction(action: () => Promise<void>): Promise<void> {
+    if (actionPending) {
+      return;
+    }
+
     setActionError(null);
+    setActionPending(true);
     try {
       await action();
-    } catch {
-      setActionError("操作に失敗しました。少し時間をおいて再度お試しください。");
+    } catch (error) {
+      setActionError(
+        error instanceof ApiRequestError && error.code === "no_random_candidate"
+          ? "ほかに選べる本がありません。"
+          : "操作に失敗しました。少し時間をおいて再度お試しください。"
+      );
+    } finally {
+      setActionPending(false);
     }
   }
 
@@ -84,7 +97,9 @@ function CurrentView(input: {
       <section className="view">
         <h2 className="section-label">今週の一冊</h2>
         <p className="status">推薦を作成できる書籍がありません。</p>
-        <button onClick={() => void runAction(input.onRun)}>推薦を更新</button>
+        <button disabled={actionPending} onClick={() => void runAction(input.onRun)}>
+          推薦を更新
+        </button>
         {actionError ? (
           <p className="status status--error" role="alert">
             {actionError}
@@ -119,8 +134,12 @@ function CurrentView(input: {
           CYCLE {input.current.cycleId} · {input.current.reason}
         </p>
         <div className="toolbar">
-          <button onClick={() => void runAction(input.onRun)}>更新</button>
-          <button onClick={() => void runAction(input.onSkip)}>skip</button>
+          <button disabled={actionPending} onClick={() => void runAction(input.onRun)}>
+            更新
+          </button>
+          <button disabled={actionPending} onClick={() => void runAction(input.onRandomize)}>
+            ランダムに選ぶ
+          </button>
         </div>
       </div>
       {actionError ? (
@@ -363,7 +382,7 @@ export function App(): JSX.Element {
               settings={settings}
               loading={loading}
               onRun={() => runRecommendation().then(setCurrent)}
-              onSkip={() => skipRecommendation().then(setCurrent)}
+              onRandomize={() => randomizeRecommendation().then(setCurrent)}
               onPromote={(bookmeterUrl) => promoteRecommendation(bookmeterUrl).then(setCurrent)}
             />
           }

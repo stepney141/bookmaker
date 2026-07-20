@@ -7,9 +7,10 @@ import { describe, expect, it } from "vitest";
 import { getSettings, openAppDb } from "../db/appDb";
 import { syncSourceBooks } from "../db/sync";
 
-import { runRecommendation } from "./engine";
+import { randomizeRecommendation, runRecommendation, selectWeightedCandidate } from "./engine";
 import { getCurrentRecommendation } from "./store";
 
+import type { ScoredBook } from "./scoring";
 import type { SourceBook } from "../shared/types";
 
 function book(input: Partial<SourceBook> & Pick<SourceBook, "bookmeterUrl" | "title" | "remoteRank">): SourceBook {
@@ -32,7 +33,35 @@ function book(input: Partial<SourceBook> & Pick<SourceBook, "bookmeterUrl" | "ti
   };
 }
 
+function scoredBook(input: {
+  readonly bookmeterUrl: string;
+  readonly title: string;
+  readonly remoteRank: number;
+  readonly score: number;
+}): ScoredBook {
+  return {
+    ...book(input),
+    contentHash: "hash",
+    firstSeenAt: "2026-01-01T00:00:00.000Z",
+    lastSeenAt: "2026-01-01T00:00:00.000Z",
+    lastScanRunId: 1,
+    score: input.score,
+    scoreBreakdown: [],
+    reasons: []
+  };
+}
+
 describe("recommendation engine", () => {
+  it("selects candidates in score-proportional intervals", () => {
+    const scoredBooks = [
+      scoredBook({ bookmeterUrl: "lighter", title: "軽い候補", remoteRank: 1, score: 0.25 }),
+      scoredBook({ bookmeterUrl: "heavier", title: "重い候補", remoteRank: 2, score: 0.75 })
+    ];
+
+    expect(selectWeightedCandidate({ candidates: scoredBooks, randomValue: 0.249 })?.bookmeterUrl).toBe("lighter");
+    expect(selectWeightedCandidate({ candidates: scoredBooks, randomValue: 0.25 })?.bookmeterUrl).toBe("heavier");
+  });
+
   it("keeps the active primary while it remains in the current source set", () => {
     const dir = mkdtempSync(join(tmpdir(), "reading-recommender-"));
     const appDb = openAppDb(join(dir, "app.sqlite"));
@@ -112,6 +141,91 @@ describe("recommendation engine", () => {
 
       expect(current?.primary?.bookmeterUrl).toBe("upper");
       expect(replacementEvent?.event_type).toBe("primary_replaced_by_series_predecessor");
+    } finally {
+      appDb.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("randomizes outside the displayed set and excludes later series volumes while preserving the cycle", () => {
+    const dir = mkdtempSync(join(tmpdir(), "reading-recommender-"));
+    const appDb = openAppDb(join(dir, "app.sqlite"));
+    const books = [
+      book({ bookmeterUrl: "current-primary", title: "現在の主推薦", remoteRank: 100 }),
+      book({ bookmeterUrl: "current-secondary-1", title: "現在の副推薦1", remoteRank: 90 }),
+      book({ bookmeterUrl: "current-secondary-2", title: "現在の副推薦2", remoteRank: 80 }),
+      book({ bookmeterUrl: "later-volume", title: "解析入門 2巻", remoteRank: 70 }),
+      book({ bookmeterUrl: "earlier-volume", title: "解析入門 1巻", remoteRank: 1 }),
+      book({ bookmeterUrl: "other", title: "別の候補", remoteRank: 60 })
+    ];
+
+    try {
+      syncSourceBooks({ db: appDb.db, booksDbPath: "fixture", sourceBooks: books });
+      const settings = getSettings(appDb.db);
+      runRecommendation({ db: appDb.db, settings, reason: "initial" });
+      const before = getCurrentRecommendation({ db: appDb.db, relatedBooks: [] });
+      const result = randomizeRecommendation({ db: appDb.db, settings, randomValue: 0 });
+      const after = getCurrentRecommendation({ db: appDb.db, relatedBooks: [] });
+      const event = appDb.db
+        .prepare("SELECT cycle_id, payload_json FROM recommendation_event WHERE event_type = ?")
+        .get("primary_randomized") as { readonly cycle_id: number; readonly payload_json: string } | undefined;
+      const payload = JSON.parse(event?.payload_json ?? "null") as {
+        readonly previous: { readonly primary: string; readonly secondaries: readonly string[] };
+        readonly next: { readonly primary: string; readonly secondaries: readonly string[] };
+        readonly eligibleCount: number;
+      };
+
+      expect(result).toEqual({ status: "selected", cycleId: before?.cycleId });
+      expect(after?.cycleId).toBe(before?.cycleId);
+      expect(after?.createdAt).toBe(before?.createdAt);
+      expect(after?.reason).toBe(before?.reason);
+      expect(after?.primary?.bookmeterUrl).toBe("earlier-volume");
+      expect(after?.primary?.bookmeterUrl).not.toBe("later-volume");
+      expect(after?.secondaries.map((item) => item.bookmeterUrl)).toEqual(["current-primary", "current-secondary-1"]);
+      expect(event?.cycle_id).toBe(before?.cycleId);
+      expect(payload).toEqual({
+        previous: {
+          primary: "current-primary",
+          secondaries: ["current-secondary-1", "current-secondary-2"]
+        },
+        next: {
+          primary: "earlier-volume",
+          secondaries: ["current-primary", "current-secondary-1"]
+        },
+        eligibleCount: 2
+      });
+    } finally {
+      appDb.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("does not mutate the active cycle when no random candidate remains", () => {
+    const dir = mkdtempSync(join(tmpdir(), "reading-recommender-"));
+    const appDb = openAppDb(join(dir, "app.sqlite"));
+    const books = [
+      book({ bookmeterUrl: "book-1", title: "候補1", remoteRank: 3 }),
+      book({ bookmeterUrl: "book-2", title: "候補2", remoteRank: 2 }),
+      book({ bookmeterUrl: "book-3", title: "候補3", remoteRank: 1 })
+    ];
+
+    try {
+      syncSourceBooks({ db: appDb.db, booksDbPath: "fixture", sourceBooks: books });
+      const settings = getSettings(appDb.db);
+      runRecommendation({ db: appDb.db, settings, reason: "initial" });
+      const before = getCurrentRecommendation({ db: appDb.db, relatedBooks: [] });
+      const eventCountBefore = appDb.db.prepare("SELECT COUNT(*) AS count FROM recommendation_event").get() as {
+        readonly count: number;
+      };
+      const result = randomizeRecommendation({ db: appDb.db, settings, randomValue: 0.5 });
+      const after = getCurrentRecommendation({ db: appDb.db, relatedBooks: [] });
+      const eventCountAfter = appDb.db.prepare("SELECT COUNT(*) AS count FROM recommendation_event").get() as {
+        readonly count: number;
+      };
+
+      expect(result).toEqual({ status: "no_random_candidate" });
+      expect(after).toEqual(before);
+      expect(eventCountAfter.count).toBe(eventCountBefore.count);
     } finally {
       appDb.close();
       rmSync(dir, { recursive: true, force: true });
