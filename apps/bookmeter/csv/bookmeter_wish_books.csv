@@ -1,4 +1,5 @@
 bookmeter_url,isbn_or_asin,book_title,author,publisher,published_date,exist_in_sophia,exist_in_utokyo,sophia_opac,utokyo_opac,sophia_mathlib_opac
+https://bookmeter.com/books/23566242,4814401787,Not_found_in_GoogleBooks,Not_found_in_GoogleBooks,Not_found_in_GoogleBooks,Not_found_in_GoogleBooks,No,No,,,
 https://bookmeter.com/books/23540323,4339011681,音声器官のメカニズムとシミュレーション : 生体計測とモデル化 (音響テクノロジーシリーズ ； 29),日本音響学会 吉永司 竹本浩典 北村達也 桂田浩一 徳田功,コロナ社,,No,No,,,
 https://bookmeter.com/books/594782,4873114225,組み込みLinuxシステム構築,"Yaghmour,Karim Masters,Jon Ben-Yossef,Gilad ほか",オーム社,200910,No,Yes,,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB00132942,
 https://bookmeter.com/books/14906235,4322134637,ファイナンス機械学習 : 金融市場分析を変える機械学習アルゴリズムの理論と実践,"LópezdePrado,MarcosMailoc 長尾,慎太郎 鹿子木,亨紀 大和証券投資信託委託株式会社",きんざい,201912,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB29344035,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB29344035,
@@ -481,7 +482,6 @@ https://bookmeter.com/books/22249200,4867800570,西洋文学にみる魔術の�
 https://bookmeter.com/books/4445,4422202340,「図説」アラビア文字事典,"Mandel, Gabriele,矢島, 文夫, 1928-2006,緑, 慎也, 1976-,ガブリエル・マンデル・ハーン 著,矢島文夫 監修,緑慎也 訳",創元社,"Wed, 14 Feb 2024 18:57:39 +0900",Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BA68923986,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BA68923986,
 https://bookmeter.com/books/22264141,4766138511,ノスタルジア酒場 : 東欧旧社会主義国のお酒とおつまみ事情＆レシピ70,イスクラ,グラフィック社,,No,No,,,
 https://bookmeter.com/books/22219516,483998624X,暗号解読 実践ガイド,ElonkaDunin KlausSchmeh IPUSIRON 協力：Smoky,マイナビ出版,,Yes,No,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD0919520X,,
-https://bookmeter.com/books/22150866,4153400335,ネット怪談の民俗学 (ハヤカワ新書),廣田龍平,,,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD09309105,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD09309105,
 https://bookmeter.com/books/4487446,4757142846,謎のチェス指し人形「ターク」,"Standage,Tom,1969- 服部,桂,1951-",NTT出版,201112,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB0778166X,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB0778166X,
 https://bookmeter.com/books/22134513,4150506132,謎のチェス指し人形「ターク」 (ハヤカワ文庫NF),トム・スタンデージ 服部桂,,,No,No,,,
 https://bookmeter.com/books/21875089,4867800252,ハートの図像学,須藤温子／監修 木村三郎／著・編集 植月惠一郎／著・編集,小鳥遊書房,20240510,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD07051989,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD07051989,
