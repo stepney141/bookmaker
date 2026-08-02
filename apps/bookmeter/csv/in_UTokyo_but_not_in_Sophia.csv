@@ -1,9 +1,7 @@
 isbn_or_asin,book_title,author,publisher,published_date,utokyo_opac
 4873114225,組み込みLinuxシステム構築,"Yaghmour,Karim Masters,Jon Ben-Yossef,Gilad ほか",オーム社,200910,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB00132942
 4871483010,コンピュータ言語進化論 : 思考増幅装置を求める知的冒険の旅 / ASCII海外ブックス,"Levine, Howard, 1947-,Rheingold, Howard, 1947-,椋田, 直子, 1941-,Howard Levine, Howard Rheingold 著,椋田直子 訳",アスキー,"Thu, 22 Dec 1988 09:00:00 +0900",https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BN02033924
-4867931551,著作権全史,デイヴィッド・ベロス／著 アレクサンドル・モンタギュー／著 小佐田愛子／翻訳,作品社,20260703,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD19707057
 4873115388,実践Metasploit : ペネトレーションテストによる脆弱性評価,"Kennedy,David,1982- O'Gorman,Jim Kearns,Devon ほか",オーム社,201205,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB09253629
-4130607731,地球物理データの逆解析 : 理論と応用,松浦充宏 深畑幸俊,東京大学出版会,,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD19199910
 4839981728,単体テストの考え方/使い方 (Compass Programming),"Khorikov,Vladimir 須田,智之",マイナビ出版,202212,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD00496331
 4798182435,知識ゼロから学ぶソフトウェアテスト 第3版 アジャイル・AI時代の必携教科書,高橋寿一／著,翔泳社,20231116,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?isbn=4798182435
 4621303252,Effective Java,"Bloch,Joshua 柴田,芳樹,1959-",丸善出版,201810,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB27082583
@@ -11,6 +9,7 @@ isbn_or_asin,book_title,author,publisher,published_date,utokyo_opac
 4798158461,絵で見てわかるITインフラの仕組み,"山崎,泰史 三縄,慶子 畔勝,洋平 小田,圭二",翔泳社,201906,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB28512269
 4904153014,アコンカグア山頂の嵐,"Sekelj,Tibor,1912-1988 栗栖,継,1910-2009 栗栖,茜,1943-",海山社,200809,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BA88618056
 4480084789,漫画原論 ヨ-6-1 (ちくま学芸文庫),四方田犬彦／著,筑摩書房,19990410,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BA41078217
+4788720841,ライトノベル大全,細谷正充 三村美衣 タニグチリウイチ 太田祥暉,時事通信社,,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD14978090
 4044008434,前世の記憶をもつ少年 : 全訳勝五郎再生記聞 J126-3 (角川ソフィア文庫),"平田,篤胤,1776-1843 今井,秀和,1979-",KADOKAWA,202601,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD14536183
 4061595792,酒池肉林 : 中国の贅沢三昧 (講談社学術文庫),"井波,律子,1944-2020",講談社,200301,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BA60341036
 4166607235,生命保険のカラクリ 723 (文春新書),"岩瀬,大輔",文藝春秋,200910,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BA91725564
