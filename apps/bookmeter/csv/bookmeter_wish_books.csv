@@ -1,10 +1,11 @@
 bookmeter_url,isbn_or_asin,book_title,author,publisher,published_date,exist_in_sophia,exist_in_utokyo,sophia_opac,utokyo_opac,sophia_mathlib_opac
+https://bookmeter.com/books/12452228,4409510762,中国飛翔文学誌,武田雅哉／著,人文書院,20171220,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB25152815,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB25152815,
 https://bookmeter.com/books/22278224,4815627053,図解入門TCP/IP 第2版 : 仕組み・動作が見てわかる,みやたひろし,ＳＢクリエイティブ,,No,No,,,
 https://bookmeter.com/books/23468362,4040825616,魔術の古代世界 「古代ギリシア語魔術パピルス」を読む (角川新書),前野弘志,ＫＡＤＯＫＡＷＡ,,No,No,,,
 https://bookmeter.com/books/23467894,4831827320,日本の憑きもの : 社会人類学的考察 (法蔵館文庫),吉田禎吾 香川雅信,法藏館,,No,No,,,
 https://bookmeter.com/books/8223076,4764904632,法廷のための統計リテラシー : 合理的討論の基盤として 3 (ISMシリーズ : 進化する統計数理),"石黒,真木夫,1946- 岡本,基,1978- 椿,広計,1956- 統計数理研究所",近代科学社,201408,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB16377698,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB16377698,
 https://bookmeter.com/books/23426437,4049012022,我ら、プログラマー AdaからAIまで、コーダーたちの年代記,ＲｏｂｅｒｔＣ．Ｍａｒｔｉｎ 角征典,ＫＡＤＯＫＡＷＡ,,No,No,,,
-https://bookmeter.com/books/23566242,4814401787,Not_found_in_GoogleBooks,Not_found_in_GoogleBooks,Not_found_in_GoogleBooks,Not_found_in_GoogleBooks,No,No,,,
+https://bookmeter.com/books/23566242,4814401787,ソフトウェアエンジニアリングの基礎 : コーダーからエンジニアになるための実践ガイド,"Nathaniel Schutta,Dan Vega,村上 列,Nathaniel Schutta 著・文・その他,Dan Vega 著・文・その他,村上 列 翻訳","オライリー・ジャパン,オーム社","Sat, 8 Aug 2026 18:56:00 +0900",No,No,,,
 https://bookmeter.com/books/23540323,4339011681,音声器官のメカニズムとシミュレーション : 生体計測とモデル化 (音響テクノロジーシリーズ ； 29),日本音響学会 吉永司 竹本浩典 北村達也 桂田浩一 徳田功,コロナ社,,No,No,,,
 https://bookmeter.com/books/594782,4873114225,組み込みLinuxシステム構築,"Yaghmour,Karim Masters,Jon Ben-Yossef,Gilad ほか",オーム社,200910,No,Yes,,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB00132942,
 https://bookmeter.com/books/14906235,4322134637,ファイナンス機械学習 : 金融市場分析を変える機械学習アルゴリズムの理論と実践,"LópezdePrado,MarcosMailoc 長尾,慎太郎 鹿子木,亨紀 大和証券投資信託委託株式会社",きんざい,201912,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB29344035,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB29344035,
