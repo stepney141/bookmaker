@@ -6,6 +6,11 @@ export type ScoredBook = BookSnapshot & {
   readonly reasons: readonly string[];
 };
 
+export type WeightedScoredBook = {
+  readonly book: ScoredBook;
+  readonly weight: number;
+};
+
 type SeriesPosition = {
   readonly key: string;
   readonly order: number;
@@ -28,6 +33,7 @@ const JAPANESE_NUMERAL_VALUES = new Map([
 ]);
 
 const TRAILING_PUBLICATION_NOTE = String.raw`(?:\s*[（(][^()（）]*[）)])*`;
+const STACKED_RANDOM_SHARE = 0.8;
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
@@ -217,6 +223,9 @@ function reasonsFromBreakdown(book: BookSnapshot, scoreBreakdown: readonly Score
 }
 
 function compareBaseOrder(a: ScoredBook, b: ScoredBook): number {
+  if (a.inStacked !== b.inStacked) {
+    return a.inStacked ? -1 : 1;
+  }
   if (b.score !== a.score) {
     return b.score - a.score;
   }
@@ -308,6 +317,28 @@ export function filterEarliestSeriesCandidates(candidates: readonly ScoredBook[]
     }
 
     return context.order === earliestOrderBySeries.get(context.key);
+  });
+}
+
+export function randomDrawWeights(candidates: readonly ScoredBook[]): readonly WeightedScoredBook[] {
+  const hasStacked = candidates.some((candidate) => candidate.inStacked);
+  const hasWish = candidates.some((candidate) => !candidate.inStacked);
+
+  if (!hasStacked || !hasWish) {
+    return candidates.map((book) => ({ book, weight: book.score }));
+  }
+
+  const stackedScoreSum = candidates
+    .filter((candidate) => candidate.inStacked)
+    .reduce((total, candidate) => total + candidate.score, 0);
+  const wishScoreSum = candidates
+    .filter((candidate) => !candidate.inStacked)
+    .reduce((total, candidate) => total + candidate.score, 0);
+
+  return candidates.map((book) => {
+    const tierScoreSum = book.inStacked ? stackedScoreSum : wishScoreSum;
+    const tierShare = book.inStacked ? STACKED_RANDOM_SHARE : 1 - STACKED_RANDOM_SHARE;
+    return { book, weight: (book.score / tierScoreSum) * tierShare };
   });
 }
 

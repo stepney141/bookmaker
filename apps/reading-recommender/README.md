@@ -123,9 +123,9 @@ docker compose up -d reading-recommender
 
 主推薦が最新の `wish ∪ stacked` に残っている場合、週次更新や手動更新でも主推薦を維持する。主推薦が消えた場合は、最新 SQLite にその本が存在しないという事実に基づいて読了済みと判定し、新しい主推薦と副推薦を選ぶ。この判定は score より優先される。
 
-初期 score は、積読本の優先、読書メーター上の表示順、書誌 metadata の充実度を使う。`rowid` は履歴的な登録順ではなく、最後の `bookmeter` 同期時の読書メーター表示順を反映するため、app setting の `remoteOrderAgeDirection` で解釈を切り替える。
+初期 score は、積読本の優先、読書メーター上の表示順、書誌 metadata の充実度を使う。順位付けでは積読本を常に読みたい本より上位に置き、score は各リスト内の順序だけを決める。`rowid` は履歴的な登録順ではなく、最後の `bookmeter` 同期時の読書メーター表示順を反映するため、app setting の `remoteOrderAgeDirection` で解釈を切り替える。
 
-「ランダムに選ぶ」は、最新の `wish ∪ stacked` から表示中の主推薦と副推薦を除き、各候補を `score / 候補全体の score 合計` の確率で抽出する。同一シリーズに先行巻が残っている後続巻も除外し、選んだ主推薦以外の副推薦は score 順で作り直す。この操作は現在の推薦 cycle を更新するため、cycle ID、推薦日、読了予定日は変わらず、変更前後の推薦は `primary_randomized` event に記録される。抽出対象がなければ推薦を変更せず、API は `409 no_random_candidate` を返す。
+「ランダムに選ぶ」は、最新の `wish ∪ stacked` から表示中の主推薦と副推薦を除き、同一シリーズに先行巻が残っている後続巻も除外する。積読本と読みたい本の両方が抽出対象に残る場合、抽出確率全体の 80% を積読本、20% を読みたい本に割り当て、各リスト内では score に比例して選ぶ。一方のリストだけが残る場合は、そのリスト内の score に比例して選ぶ。選んだ主推薦以外の副推薦は score 順で作り直す。この操作は現在の推薦 cycle を更新するため、cycle ID、推薦日、読了予定日は変わらず、変更前後の推薦は `primary_randomized` event に記録される。抽出対象がなければ推薦を変更せず、API は `409 no_random_candidate` を返す。
 
 ## データベース
 
@@ -232,7 +232,7 @@ pnpm --filter @bookmaker/reading-recommender run test
 pnpm --filter @bookmaker/reading-recommender run build
 ```
 
-現在のテストは、source DB の read-only 同期、`wish ∪ stacked` の統合、rowid 由来の rank、主推薦の継続、主推薦消失時の読了判定、積読本優先の scoring を検証する。
+現在のテストは、source DB の read-only 同期、`wish ∪ stacked` の統合、rowid 由来の rank、主推薦の継続、主推薦消失時の読了判定、積読本優先の順位付けとランダム抽出を検証する。
 
 ## 運用上の注意
 

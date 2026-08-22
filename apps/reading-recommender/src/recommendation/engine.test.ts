@@ -33,10 +33,7 @@ function book(input: Partial<SourceBook> & Pick<SourceBook, "bookmeterUrl" | "ti
   };
 }
 
-function scoredBook(input: {
-  readonly bookmeterUrl: string;
-  readonly title: string;
-  readonly remoteRank: number;
+function scoredBook(input: Partial<SourceBook> & Pick<SourceBook, "bookmeterUrl" | "title" | "remoteRank"> & {
   readonly score: number;
 }): ScoredBook {
   return {
@@ -53,13 +50,37 @@ function scoredBook(input: {
 
 describe("recommendation engine", () => {
   it("selects candidates in score-proportional intervals", () => {
-    const scoredBooks = [
-      scoredBook({ bookmeterUrl: "lighter", title: "軽い候補", remoteRank: 1, score: 0.25 }),
-      scoredBook({ bookmeterUrl: "heavier", title: "重い候補", remoteRank: 2, score: 0.75 })
+    const weightedCandidates = [
+      {
+        book: scoredBook({ bookmeterUrl: "lighter", title: "軽い候補", remoteRank: 1, score: 1 }),
+        weight: 0.25
+      },
+      {
+        book: scoredBook({ bookmeterUrl: "heavier", title: "重い候補", remoteRank: 2, score: 1 }),
+        weight: 0.75
+      }
     ];
 
-    expect(selectWeightedCandidate({ candidates: scoredBooks, randomValue: 0.249 })?.bookmeterUrl).toBe("lighter");
-    expect(selectWeightedCandidate({ candidates: scoredBooks, randomValue: 0.25 })?.bookmeterUrl).toBe("heavier");
+    expect(selectWeightedCandidate({ candidates: weightedCandidates, randomValue: 0.249 })?.bookmeterUrl).toBe("lighter");
+    expect(selectWeightedCandidate({ candidates: weightedCandidates, randomValue: 0.25 })?.bookmeterUrl).toBe("heavier");
+  });
+
+  it("rejects invalid random values and explicit weights", () => {
+    const candidate = scoredBook({ bookmeterUrl: "candidate", title: "候補", remoteRank: 1, score: 1 });
+
+    expect(selectWeightedCandidate({ candidates: [], randomValue: 0.5 })).toBeNull();
+    expect(selectWeightedCandidate({ candidates: [{ book: candidate, weight: 1 }], randomValue: -0.1 })).toBeNull();
+    expect(selectWeightedCandidate({ candidates: [{ book: candidate, weight: 1 }], randomValue: 1 })).toBeNull();
+    expect(selectWeightedCandidate({ candidates: [{ book: candidate, weight: 0 }], randomValue: 0.5 })).toBeNull();
+    expect(
+      selectWeightedCandidate({ candidates: [{ book: candidate, weight: Number.NaN }], randomValue: 0.5 })
+    ).toBeNull();
+    expect(
+      selectWeightedCandidate({
+        candidates: [{ book: candidate, weight: Number.POSITIVE_INFINITY }],
+        randomValue: 0.5
+      })
+    ).toBeNull();
   });
 
   it("keeps the active primary while it remains in the current source set", () => {
@@ -194,6 +215,90 @@ describe("recommendation engine", () => {
         },
         eligibleCount: 2
       });
+    } finally {
+      appDb.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("randomizes mixed eligible candidates with an 80% stacked and 20% wish tier share", () => {
+    const books = [
+      book({ bookmeterUrl: "stacked-1", title: "積読本1", remoteRank: 100 }),
+      book({ bookmeterUrl: "stacked-2", title: "積読本2", remoteRank: 90 }),
+      book({ bookmeterUrl: "stacked-3", title: "積読本3", remoteRank: 80 }),
+      book({ bookmeterUrl: "eligible-stacked", title: "抽出対象の積読本", remoteRank: 70 }),
+      book({
+        bookmeterUrl: "eligible-wish",
+        title: "抽出対象の読みたい本",
+        remoteRank: 1,
+        inWish: true,
+        inStacked: false,
+        wishRowid: 1,
+        stackedRowid: null,
+        remoteRankSource: "wish"
+      })
+    ];
+
+    function selectAt(randomValue: number): {
+      readonly primaryUrl: string | null;
+      readonly eligibleCount: number | null;
+    } {
+      const dir = mkdtempSync(join(tmpdir(), "reading-recommender-"));
+      const appDb = openAppDb(join(dir, "app.sqlite"));
+
+      try {
+        syncSourceBooks({ db: appDb.db, booksDbPath: "fixture", sourceBooks: books });
+        const settings = getSettings(appDb.db);
+        runRecommendation({ db: appDb.db, settings, reason: "initial" });
+        randomizeRecommendation({ db: appDb.db, settings, randomValue });
+        const current = getCurrentRecommendation({ db: appDb.db, relatedBooks: [] });
+        const event = appDb.db
+          .prepare("SELECT payload_json FROM recommendation_event WHERE event_type = ?")
+          .get("primary_randomized") as { readonly payload_json: string } | undefined;
+        const payload = JSON.parse(event?.payload_json ?? "null") as { readonly eligibleCount: number } | null;
+
+        return {
+          primaryUrl: current?.primary?.bookmeterUrl ?? null,
+          eligibleCount: payload?.eligibleCount ?? null
+        };
+      } finally {
+        appDb.close();
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
+
+    expect(selectAt(0.5)).toEqual({ primaryUrl: "eligible-stacked", eligibleCount: 2 });
+    expect(selectAt(0.9)).toEqual({ primaryUrl: "eligible-wish", eligibleCount: 2 });
+  });
+
+  it("falls back to a wish book when no eligible stacked book remains", () => {
+    const dir = mkdtempSync(join(tmpdir(), "reading-recommender-"));
+    const appDb = openAppDb(join(dir, "app.sqlite"));
+    const books = [
+      book({ bookmeterUrl: "stacked-1", title: "積読本1", remoteRank: 100 }),
+      book({ bookmeterUrl: "stacked-2", title: "積読本2", remoteRank: 90 }),
+      book({ bookmeterUrl: "stacked-3", title: "積読本3", remoteRank: 80 }),
+      book({
+        bookmeterUrl: "eligible-wish",
+        title: "抽出対象の読みたい本",
+        remoteRank: 1,
+        inWish: true,
+        inStacked: false,
+        wishRowid: 1,
+        stackedRowid: null,
+        remoteRankSource: "wish"
+      })
+    ];
+
+    try {
+      syncSourceBooks({ db: appDb.db, booksDbPath: "fixture", sourceBooks: books });
+      const settings = getSettings(appDb.db);
+      runRecommendation({ db: appDb.db, settings, reason: "initial" });
+      const result = randomizeRecommendation({ db: appDb.db, settings, randomValue: 0.999 });
+      const current = getCurrentRecommendation({ db: appDb.db, relatedBooks: [] });
+
+      expect(result.status).toBe("selected");
+      expect(current?.primary?.bookmeterUrl).toBe("eligible-wish");
     } finally {
       appDb.close();
       rmSync(dir, { recursive: true, force: true });

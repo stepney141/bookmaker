@@ -1,7 +1,14 @@
 
 import { getCurrentSnapshots, insertRecommendationEvent } from "../db/appDb";
 
-import { filterEarliestSeriesCandidates, findEarlierSeriesCandidate, scoreBooks, type ScoredBook } from "./scoring";
+import {
+  filterEarliestSeriesCandidates,
+  findEarlierSeriesCandidate,
+  randomDrawWeights,
+  scoreBooks,
+  type ScoredBook,
+  type WeightedScoredBook
+} from "./scoring";
 import {
   getActiveCycleId,
   replaceRecommendationItems,
@@ -58,7 +65,7 @@ function chooseSelectionWithPrimary(input: {
 }
 
 export function selectWeightedCandidate(input: {
-  readonly candidates: readonly ScoredBook[];
+  readonly candidates: readonly WeightedScoredBook[];
   readonly randomValue: number;
 }): ScoredBook | null {
   if (!Number.isFinite(input.randomValue) || input.randomValue < 0 || input.randomValue >= 1) {
@@ -66,12 +73,12 @@ export function selectWeightedCandidate(input: {
   }
   if (
     input.candidates.length === 0 ||
-    input.candidates.some((candidate) => !Number.isFinite(candidate.score) || candidate.score <= 0)
+    input.candidates.some((candidate) => !Number.isFinite(candidate.weight) || candidate.weight <= 0)
   ) {
     return null;
   }
 
-  const totalWeight = input.candidates.reduce((total, candidate) => total + candidate.score, 0);
+  const totalWeight = input.candidates.reduce((total, candidate) => total + candidate.weight, 0);
 
   if (!Number.isFinite(totalWeight) || totalWeight <= 0) {
     return null;
@@ -81,10 +88,10 @@ export function selectWeightedCandidate(input: {
   let cumulativeWeight = 0;
 
   for (const candidate of input.candidates) {
-    cumulativeWeight += candidate.score;
+    cumulativeWeight += candidate.weight;
 
     if (threshold < cumulativeWeight) {
-      return candidate;
+      return candidate.book;
     }
   }
 
@@ -197,7 +204,8 @@ export function randomizeRecommendation(input: {
   const eligibleCandidates = filterEarliestSeriesCandidates(scoredBooks).filter(
     (candidate) => !displayedUrls.has(candidate.bookmeterUrl)
   );
-  const primary = selectWeightedCandidate({ candidates: eligibleCandidates, randomValue: input.randomValue });
+  const weightedCandidates = randomDrawWeights(eligibleCandidates);
+  const primary = selectWeightedCandidate({ candidates: weightedCandidates, randomValue: input.randomValue });
 
   if (!primary) {
     return { status: "no_random_candidate" };
