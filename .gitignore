@@ -2,6 +2,7 @@ node_modules
 */node_modules
 
 .logs
+logs
 
 .env
 */.env
@@ -37,3 +38,7 @@ wheels/
 
 # Virtual environments
 .venv
+
+# 蔵書ジャンル分析の中間生成物（成果物は memo/genre-analysis/ にある）
+data/genre-analysis.sqlite
+data/genre-analysis/

@@ -1,46 +1,8 @@
-$ tsx src/index.ts full stacked
-Execution plan => mode=full, target=stacked, forceRefresh=false, scrape=remote(login=true), phases=compare -> fetchBiblio -> crawlDescriptions -> persist -> exportCsv -> uploadDb
+$ tsx src/index.ts sync stacked
+Execution plan => mode=sync, target=stacked, refetch=none, ignoreDiff=false, scrape=remote(login=true), phases=compare -> fetchBiblio -> crawlDescriptions -> persist -> exportCsv -> uploadDb
 Loading previous book list from SQLite database (table: stacked)
-Loaded 1836 cached books from SQLite.
-Login Completed!
-Scraping Started!
-scanning page 1
-scanning page 2
-scanning page 3
-scanning page 4
-scanning page 5
-scanning page 6
-scanning page 7
-scanning page 8
-scanning page 9
-scanning page 10
-scanning page 11
-scanning page 12
-scanning page 13
-scanning page 14
-scanning page 15
-scanning page 16
-scanning page 17
-scanning page 18
-scanning page 19
-Detected some diffs between the local and remote.
-Fetching bibliographic information
-Completed fetching the list of ja books in Sophia Univ. Math Lib
-Completed fetching the list of ja books in Sophia Univ. Math Lib
-Completed creating a list of ISBNs of ja books in Sophia Univ. Math Lib
-Searching Completed
-Crawling Kinokuniya for book descriptions
-Loaded 314 existing descriptions from database.
-Saving data to SQLite database
-Synchronizing book list with database table: stacked
-Re-inserting 363 books into stacked in remote order...
-Synchronization complete for stacked.
-Generating CSV from SQLite database
-Exporting columns [bookmeter_url, isbn_or_asin, book_title, author, publisher, published_date] from table stacked to CSV file ./csv/bookmeter_stacked_books.csv
-Fetched 363 rows from stacked.
-Successfully exported 363 books to ./csv/bookmeter_stacked_books.csv
-Finished writing ./csv/bookmeter_stacked_books.csv
-Skipping library CSV reports for non-wish target.
-Uploading SQLite database to Firebase Storage...
-Database uploaded successfully to bookmeter/books.sqlite
-The processs took 50 seconds
+Loaded 1843 cached books from SQLite.
+Navigation timeout of 120000 ms exceeded
+/home/stepney141/bookmaker/apps/bookmeter:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @bookmaker/bookmeter@1.0.0 stacked: `tsx src/index.ts sync stacked`
+Exit status 1
