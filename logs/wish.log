@@ -1,8 +1,0 @@
-$ tsx src/index.ts sync wish
-Execution plan => mode=sync, target=wish, refetch=none, ignoreDiff=false, scrape=remote(login=true), phases=compare -> fetchBiblio -> crawlDescriptions -> persist -> exportCsv -> uploadDb
-Loading previous book list from SQLite database (table: wish)
-Loaded 1843 cached books from SQLite.
-Navigation timeout of 120000 ms exceeded
-/home/stepney141/bookmaker/apps/bookmeter:
-[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @bookmaker/bookmeter@1.0.0 wish: `tsx src/index.ts sync wish`
-Exit status 1
