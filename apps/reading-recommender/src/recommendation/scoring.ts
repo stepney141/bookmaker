@@ -71,6 +71,16 @@ function remoteAge(book: BookSnapshot, settings: AppSettings, maxRemoteRank: num
   return weightedContribution("remoteAge", value, 0.2, "読書メーター上の表示順を古さの近似として使っています。");
 }
 
+/**
+ * bookmeter が書誌取得に失敗した行は、title に `Not_found_in_*` などのプレースホルダーを持つ。
+ * こうした行は推薦しても読者に意味が伝わらないため、候補から外す。
+ */
+function hasUsableBiblio(book: Pick<BookSnapshot, "title">): boolean {
+  const title = book.title.trim();
+
+  return !title.startsWith("Not_found_in_") && !title.endsWith("_API_Error") && title !== "INVALID_ISBN";
+}
+
 function metadataQuality(book: BookSnapshot): ScoreContribution {
   const fields = [book.title, book.author, book.publisher, book.publishedDate, book.description];
   const presentCount = fields.filter((field) => field.trim().length > 0).length;
@@ -342,7 +352,8 @@ export function randomDrawWeights(candidates: readonly ScoredBook[]): readonly W
   });
 }
 
-export function scoreBooks(books: readonly BookSnapshot[], settings: AppSettings): readonly ScoredBook[] {
+export function scoreBooks(allBooks: readonly BookSnapshot[], settings: AppSettings): readonly ScoredBook[] {
+  const books = allBooks.filter(hasUsableBiblio);
   const maxRemoteRank = books.reduce((maxRank, book) => Math.max(maxRank, book.remoteRank), 1);
   const contexts = seriesOrderContexts(books);
 

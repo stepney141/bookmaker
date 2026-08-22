@@ -91,6 +91,21 @@ describe("randomDrawWeights", () => {
 });
 
 describe("scoreBooks", () => {
+  it("excludes books whose title is a bibliographic placeholder", () => {
+    const scored = scoreBooks(
+      [
+        snapshot({ bookmeterUrl: "openbd", title: "Not_found_in_OpenBD", remoteRank: 1 }),
+        snapshot({ bookmeterUrl: "google", title: "Not_found_in_GoogleBooks", remoteRank: 2 }),
+        snapshot({ bookmeterUrl: "api-error", title: "NDL_API_Error", remoteRank: 3 }),
+        snapshot({ bookmeterUrl: "invalid", title: "INVALID_ISBN", remoteRank: 4 }),
+        snapshot({ bookmeterUrl: "ok", title: "通常の本", remoteRank: 6 })
+      ],
+      DEFAULT_SETTINGS
+    );
+
+    expect(scored.map((book) => book.bookmeterUrl)).toEqual(["ok"]);
+  });
+
   it("prioritizes stacked books over wish books even when the wish book has older remote rank", () => {
     const scored = scoreBooks(
       [
