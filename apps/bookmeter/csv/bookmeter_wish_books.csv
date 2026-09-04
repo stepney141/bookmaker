@@ -1,4 +1,5 @@
 bookmeter_url,isbn_or_asin,book_title,author,publisher,published_date,exist_in_sophia,exist_in_utokyo,sophia_opac,utokyo_opac,sophia_mathlib_opac
+https://bookmeter.com/books/23013884,4582860966,感覚史入門 なぜプラスチックを「清潔」に感じるのか (平凡社新書),久野愛,平凡社,,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD1421569X,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD1421569X,
 https://bookmeter.com/books/23587272,4297158361,マルチモーダルモデル入門,栗田修平 品川政太朗 柳凜太郎 塩野大輝 高道慎之介 仁泉大輔 中村友彦 八木拓真 ほか,技術評論社,,No,No,,,
 https://bookmeter.com/books/12708289,4150505187,誰が音楽をタダにした? : 巨大産業をぶっ潰した男たち 518 (ハヤカワ文庫 NF),"Witt,Stephen,1979- 関,美和",早川書房,201803,No,No,,,
 https://bookmeter.com/books/590512,4005006558,世界史読書案内 655 (岩波ジュニア新書),"津野田,興一",岩波書店,201005,No,No,,,
