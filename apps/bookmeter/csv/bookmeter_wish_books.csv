@@ -1,4 +1,5 @@
 bookmeter_url,isbn_or_asin,book_title,author,publisher,published_date,exist_in_sophia,exist_in_utokyo,sophia_opac,utokyo_opac,sophia_mathlib_opac
+https://bookmeter.com/books/23366288,4480077502,法律の読み方がわかる本 １９２１ (ちくま新書),白石忠志／著,筑摩書房,20260610,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD19325367,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD19325367,
 https://bookmeter.com/books/23666415,B0HHTD66YT,,,,,No,No,,,
 https://bookmeter.com/books/12583684,B0788CPCLL,,,,,No,No,,,
 https://bookmeter.com/books/23583830,4326698454,社会的ジレンマ : ゲーム理論・計算社会科学・因果推論からの解明 (シリーズ　数理・計量社会学の応用),大林真也,勁草書房,,No,No,,,
