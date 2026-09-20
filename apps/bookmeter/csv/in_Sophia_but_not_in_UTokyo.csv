@@ -1,4 +1,5 @@
 isbn_or_asin,book_title,author,publisher,published_date,sophia_opac
+4040825616,魔術の古代世界 「古代ギリシア語魔術パピルス」を読む (角川新書),前野弘志,ＫＡＤＯＫＡＷＡ,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD20491523
 4065429714,検索システム = Information Retrieval Systems : なぜ検索システムは欲しい情報を見つけられるのか、あるいはなぜ見つけられないのか,"佐藤,竜馬",講談社,202607,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD19898669
 4814400667,Real World HTTP : 歴史とコードに学ぶインターネットとウェブ技術,"渋川,よしき",オーム社,202404,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD06645081
 4621066048,オブジェクト指向のこころ : デザインパターンとともに学ぶ (SOFTWARE PATTERNS SERIES),"Shalloway,Alan Trott,James 村上,雅章,1960-",丸善出版,201402,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB15159374
@@ -6,7 +7,6 @@ isbn_or_asin,book_title,author,publisher,published_date,sophia_opac
 4334108210,子どものＳＮＳ禁止より、大人のＸ規制が必要な理由 (光文社新書),岡嶋裕史,光文社,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD14215328
 4320125959,LinuxコードリーディングとRISC-Vで学ぶ オペレーティングシステム入門,清水尚彦,共立出版,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD18417222
 4786218022,君たち文系はどう生きるか : 東大で「鬼」と呼ばれた教授が伝える人生に活きる授業と成長へのヒント,"荒巻,健二,1952-",昭和女子大学出版会,202402,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD05608319
-4784221298,キセルと喫煙の歴史 : 日本への伝来、海外への伝播 (Shibunkaku Works),鈴木達也,思文閣出版,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD18619169
 4336078319,英国幽霊いまむかし / 怪奇の本棚,"南条, 竹則, 1958-,南條竹則 編訳",国書刊行会,"Tue, 10 Mar 2026 02:18:46 +0900",https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD14803042
 4492654275,アルファを求める男たち : 金融理論を投資戦略に進化させた17人の物語,"Bernstein,PeterL,1919-2009 山口,勝業,1955-",東洋経済新報社,200910,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BA91681221
 4814401574,Webブラウザエンジニアリング : Chrome開発者たちから学ぶ、作って理解するブラウザとWebの仕組み,PavelPanchekha ChrisHarrelson 小河亮,オーム社,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD18228376
@@ -69,6 +69,7 @@ isbn_or_asin,book_title,author,publisher,published_date,sophia_opac
 4041083265,ゴーストリイ・フォークロア = ghostly folklore : 17世紀～20世紀初頭の英国怪異譚,"南条,竹則,1958-",KADOKAWA,202001,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB2960018X
 4791111168,発達障害の精神病理 4,"内海,健,1955- 兼本,浩祐,1957-",星和書店,202306,https://www.lib.sophia.ac.jp/opac/opac_openurl?isbn=4791111168
 4814400225,プログラミング文体練習 : Pythonで学ぶ40のプログラミングスタイル,"Lopes,CristinaVideira 菊池,彰",オーム社 (発売),202306,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD02610154
+4761101857,仙人ワンダーランド : 和漢仙人列伝,"影山,純夫,1947-",河原書店,202305,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD02359488
 4797681217,亜宗教 : オカルト、スピリチュアル、疑似科学から陰謀論まで 121 (インターナショナル新書),"中村,圭志,1958-",集英社 (発売),202304,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD01630156
 4794226144,映画を追え : フィルムコレクター歴訪の旅,"山根,貞男,1939-2023",草思社,202302,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD00519674
 487502553X,キルヒャーの世界図鑑 : よみがえる普遍の夢,"Godwin,Joscelyn,1945- 川島,昭夫,1950-2020",工作舎,202303,https://www.lib.sophia.ac.jp/opac/opac_openurl?isbn=487502553X
