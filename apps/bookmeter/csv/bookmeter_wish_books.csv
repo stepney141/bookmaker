@@ -1,4 +1,5 @@
 bookmeter_url,isbn_or_asin,book_title,author,publisher,published_date,exist_in_sophia,exist_in_utokyo,sophia_opac,utokyo_opac,sophia_mathlib_opac
+https://bookmeter.com/books/7169602,4822249662,歴史主義の貧困 (NIKKEI BP CLASSICS),"Popper,KarlRaimund,1902-1994 岩坂,彰,1958-",日経BPマーケティング,201309,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB13711035,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB13711035,
 https://bookmeter.com/books/23408541,4130033921,英語で本を出したくて : 日英博論出版奮闘記,向山直佑,東京大学出版会,,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD20001205,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD20001205,
 https://bookmeter.com/books/21350849,4297136139,プロになるためのSpring入門 : ゼロからの開発力養成講座 (Software Design plus),"土岐,孝平",技術評論社,202307,No,No,,,
 https://bookmeter.com/books/22991090,4274234150,生成AIによるソフトウェア開発 : 設計からテスト，マネジメントまでをすべて変革するLLM活用の実践体系,情報処理学会 鷲崎弘宜 家村康佑 石川冬樹 鵜林尚請 蝦名拓也 小川秀人 川上真澄 ほか,オーム社,,Yes,No,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD13761843,,
@@ -1444,7 +1445,7 @@ https://bookmeter.com/books/9045042,4758014221,高橋晃東映アニメーショ
 https://bookmeter.com/books/11036012,4758015155,香川久東映アニメーションプリキュアワークス = KAGAWA HISASHI TOEI ANIMATION PRECURE WORKS,"香川,久,1963-",一迅社,201608,No,No,,,
 https://bookmeter.com/books/13751186,4758016364,宮本絵美子東映アニメーションプリキュアワークス,"宮本, 絵美子,宮本絵美子 画,東映アニメーション株式会社 監修","一迅社,講談社 (発売)","Thu, 11 Jul 2019 20:18:36 +0900",No,No,,,
 https://bookmeter.com/books/13683524,4163910174,世にも危険な医療の世界史,"Kang,Lydia Pedersen,Nate 福井,久美子",文藝春秋,201904,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB28150747,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB28150747,
-https://bookmeter.com/books/13025069,4815006555,Not_found_in_ISBNdb,Not_found_in_ISBNdb,Not_found_in_ISBNdb,Not_found_in_ISBNdb,No,No,,,
+https://bookmeter.com/books/13025069,4815006555,Not_found_in_GoogleBooks,Not_found_in_GoogleBooks,Not_found_in_GoogleBooks,Not_found_in_GoogleBooks,No,No,,,
 https://bookmeter.com/books/12527147,4582513352,10万個の子宮 : あの激しいけいれんは子宮頸がんワクチンの副反応なのか,"村中,璃子",平凡社,201802,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB25525763,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB25525763,
 https://bookmeter.com/books/7689317,433605777X,定本何かが空を飛んでいる,"稲生,平太郎,1954-",国書刊行会,201311,No,No,,,
 https://bookmeter.com/books/12180362,4861826500,夢と幽霊の書,アンドルー・ラング／著 ないとうふみこ／翻訳 吉田篤弘／解説,作品社,20170821,Yes,No,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BB24258231,,
