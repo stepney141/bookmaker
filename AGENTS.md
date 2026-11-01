@@ -1,33 +1,15 @@
-# bookmaker - AI Assistant Instructions
-
-This file covers the monorepo as a whole and contains only guidance that is not already documented for developers. Read `README.md` first for the repository layout, app list, toolchain, setup, root commands, the shared SQLite contract, and the procedure for adding a new app. For how any individual app works, read that app's own README; do not duplicate per-app detail here.
-
-## Hard constraints
-
-- `data/books.sqlite` is the only cross-app artifact, and `bookmeter` is its **only writer**. Every other app opens it read-only and keeps derived state in its own DB (`reading-recommender` uses `data/reading-recommender.sqlite`). Never add tables, columns, or rows to the shared DB from anywhere but `bookmeter`. The schema of record is `apps/bookmeter/src/db/schema.ts`; readers keep their own read-only model instead of sharing schema definitions across languages. See "共有 SQLite の扱い" in `README.md` for the connection snippets.
-- When adding an app, follow "モノレポへのプロジェクト追加" in `README.md`, including its checklist.
-
-## Conventions
-
-These apply to all TypeScript in the repo and are codified in `rules/coding.md`, `rules/typescript.md`, and `eslint.config.mjs`. Match the existing code; the load-bearing points:
-
-- **Result type, not exceptions, for expected failures.** Use `Ok`/`Err` and `Result<T, E extends Error>` from `apps/bookmeter/src/libs/lib.ts`. Errors are classes extending `BaseError`, discriminated by a `context: { type: ... }` union, with the original cause preserved via the ES2022 `Error.cause` option. Branch on `instanceof` for the layer and `context.type` for the case. `eslint-plugin-functional` warns on `throw`.
-- **Layered, dependency-injected design.** Keep a pure domain core (no imports from IO layers), push side effects to the edges, and abstract external dependencies behind interfaces (adapter pattern) so tests can substitute in-memory implementations. Prefer functions over classes unless a unit holds state or a lifecycle.
-- **Immutability.** Prefer immutable updates (`{ ...obj, ... }`); `functional/immutable-data` is on (Maps/Sets exempted) and `no-param-reassign` is an error.
-- **Types.** `any` is an error (use `unknown`, then narrow). Explicit function return types are required. `import type` and ordered/grouped imports are enforced. `no-floating-promises` is an error (IIFEs exempted).
-- **Tests** are colocated `*.test.ts` run by Vitest, written assert-first; favor unit-testing pure functions and testing repositories against in-memory adapters.
-
 ## 作業全般の共通ポリシー
 
-- 実装や調査などのタスクを実行する際、subagentsを積極的に使ってください。
-- あなたがClaudeの場合、以下のタスクでは積極的にcodex subagentを積極的に使ってください。
-  1. プログラムの具体的な実装に関わるタスクでは、積極的にcodex subagentsに作業を移譲する。
-  2. 計画書を作成したら、codex subagentsを起動してレビューを求める。
+- 互いに独立した調査や実装、または大量の読み込みを要する作業は、subagentsへ任せる。
+- Claudeが計画と設計を、subagentが実装を担当する。Claudeは設計の確定、レビュー、コミット、およびRULES.mdとdocs/の編集を担い、プログラムの具体的な実装はcodex subagentへ委任する。委任の手順と既知の落とし穴は docs/guides/codex-delegation.md にある。
+- Codexに委任した作業が完了または中止になったら、委任元のエージェントが必要な結果を回収し、委任先のセッションを終了する。利用したツールやプラグインの通常の終了手順に従い、その作業専用に起動したサーバーと補助プロセスが残っていないことまで確認する。共有サーバーは、ほかのセッションで利用されていないことを確認できた場合に限り終了する。
+- 計画や調査では、Claudeとcodexが互いの案を検討し合い、多角的な視点から考察する。計画書を作成したら、codex subagentにレビューを求める。
+- あなたがClaude Fableの場合、計画力に強みがあるので自分では実装せず、Opusやcodexのように実装力のあるモデルをsubagentとして複数呼び出して実装を進める。
 
 ## コーディング時のポリシー
 
 - 早すぎる最適化、測定なしの最適化は禁止する。ボトルネック議論では実測データか再現手順をセットで提示すること。
 - KISS（簡潔かつ単純にする）原則に従う。同じことをもっと簡潔なやり方・最小限のコード量で実装できないか考える。
 - YAGNI（必要になるまで書かない）原則に従う。将来用のフィールド/フラグ追加、未使用コードの温存は禁止。
-- Do not write overly defensive code. Always prefer simplicity over pathological complexity.
-
+-  Do not write overly defensive code. Always prefer simplicity over pathological complexity.
+- silent fallback・場当たり的な代替経路を追加しない。fallback は原則的に禁止する。failing fast を心がける。安全に継続できない場合は、明確なエラーを raise すること。`os.getenv()`などにデフォルト引数を入れてフォールバックするのも厳禁。
