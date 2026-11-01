@@ -37,7 +37,7 @@ function hasValidReportTitle(book: Book): boolean {
 }
 
 function pickColumns(book: Book, columns: readonly ReportColumn[]): ReportRow {
-  return Object.fromEntries(columns.map((column) => [column, book[column]])) as ReportRow;
+  return Object.fromEntries(columns.map((column) => [column, book[column]]));
 }
 
 const REPORT_DEFINITIONS: readonly ReportDefinition[] = [
