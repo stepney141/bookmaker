@@ -178,7 +178,12 @@ export function SearchPage(): JSX.Element {
         ))}
       </div>
       {selectedResult ? (
-        <BookDetailDialog book={selectedResult} titleId="search-result-title" onClose={() => setSelectedResult(null)} />
+        <BookDetailDialog
+          book={selectedResult}
+          reasons={selectedResult.reasons}
+          titleId="search-result-title"
+          onClose={() => setSelectedResult(null)}
+        />
       ) : null}
       {canLoadMore ? (
         <div className="load-more">

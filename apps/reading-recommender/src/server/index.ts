@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 
 import { openAppDb } from "../db/appDb";
 import { createOpenAIEmbeddingProviderFromEnv } from "../embedding/openai";
+import { createAnthropicLearningPathPlannerFromEnv } from "../learningPath/anthropic";
+import { createOpenAILearningPathPlannerFromEnv } from "../learningPath/openai";
 
 import { createApiServer } from "./api";
 import { createRecommendationAutomation } from "./automation";
@@ -17,7 +19,11 @@ async function main(): Promise<void> {
   const service = createReadingRecommenderService({
     appDb,
     booksDbPath,
-    embeddingProvider: createOpenAIEmbeddingProviderFromEnv(process.env)
+    embeddingProvider: createOpenAIEmbeddingProviderFromEnv(process.env),
+    learningPathPlanners: [
+      createAnthropicLearningPathPlannerFromEnv(process.env),
+      createOpenAILearningPathPlannerFromEnv(process.env)
+    ].filter((planner) => planner !== null)
   });
   const app = await createApiServer(service);
   createRecommendationAutomation({ service, booksDbPath }).start();

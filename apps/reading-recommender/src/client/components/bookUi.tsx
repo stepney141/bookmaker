@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import type { CurrentRecommendation, RecommendationBook, SearchResult } from "../../shared/types";
+import type { RecommendationBook, SearchResult, SourceBook } from "../../shared/types";
 import type { JSX, KeyboardEvent, ReactNode } from "react";
 
 export function listLabel(book: { readonly inStacked: boolean; readonly inWish: boolean }): string {
@@ -133,7 +133,8 @@ export function BookPanel(input: {
 }
 
 export function BookDetailDialog(input: {
-  readonly book: CurrentRecommendation["relatedBooks"][number] | SearchResult;
+  readonly book: SourceBook;
+  readonly reasons: readonly string[];
   readonly titleId: string;
   readonly onClose: () => void;
 }): JSX.Element {
@@ -229,7 +230,7 @@ export function BookDetailDialog(input: {
         </dl>
         <p className="book-panel__desc">{input.book.description || "説明文はまだ取得されていません。"}</p>
         <ul className="book-panel__notes">
-          {input.book.reasons.map((reason) => (
+          {input.reasons.map((reason) => (
             <li key={reason}>{reason}</li>
           ))}
         </ul>

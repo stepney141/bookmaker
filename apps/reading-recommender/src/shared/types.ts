@@ -78,6 +78,32 @@ export type SearchResult = SourceBook & {
   readonly snippet: string;
 };
 
+export type LearningPathPlannerId = "anthropic" | "openai";
+
+export type LearningPathPlannerInfo = {
+  readonly id: LearningPathPlannerId;
+  readonly label: string;
+  readonly modelId: string;
+};
+
+export type LearningPathBook = SourceBook & {
+  readonly reason: string;
+};
+
+export type LearningPathStage = {
+  readonly title: string;
+  readonly goal: string;
+  readonly books: readonly LearningPathBook[];
+};
+
+export type LearningPath = {
+  readonly topic: string;
+  readonly overview: string;
+  readonly stages: readonly LearningPathStage[];
+  readonly gaps: readonly string[];
+  readonly planner: LearningPathPlannerInfo;
+};
+
 export type AppSettings = {
   readonly recommendationDayOfWeek: number;
   readonly recommendationTime: string;

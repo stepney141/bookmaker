@@ -29,6 +29,11 @@ const promoteSchema = z.object({
   bookmeterUrl: z.string().min(1)
 });
 
+const learningPathSchema = z.object({
+  topic: z.string().trim().min(1).max(200),
+  planner: z.enum(["anthropic", "openai"])
+});
+
 function parseSearchLimit(value: string | undefined): number | undefined {
   if (!value) {
     return undefined;
@@ -106,6 +111,28 @@ export async function createApiServer(service: ReadingRecommenderService): Promi
   });
 
   app.get("/api/books/diagnostics/row-order", () => service.diagnostics());
+
+  app.get("/api/learning-paths/planners", () => service.listLearningPathPlanners());
+  app.post("/api/learning-paths", async (request, reply) => {
+    const parsed = learningPathSchema.safeParse(request.body);
+
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid_request" });
+    }
+
+    const result = await service.createLearningPath(parsed.data.topic, parsed.data.planner);
+
+    if (result.status === "planner_failed") {
+      request.log.error({ err: result.cause });
+      return reply.code(502).send({ error: "planner_failed" });
+    }
+
+    if (result.status !== "created") {
+      return reply.code(409).send({ error: result.status });
+    }
+
+    return result.learningPath;
+  });
 
   app.get("/api/settings", () => service.getSettings());
   app.patch("/api/settings", (request, reply) => {

@@ -4,16 +4,26 @@ import { syncSourceBooks, syncSourceBooksIfChanged } from "../db/sync";
 import { createRelatedSemanticScores } from "../embedding/related";
 import { ensureBookEmbeddings } from "../embedding/repository";
 import { createSemanticScores, embedQuery } from "../embedding/search";
+import { mergeLearningPathCandidates } from "../learningPath/candidates";
+import { normalizeLearningPath } from "../learningPath/normalize";
 import { promoteRecommendation, randomizeRecommendation, runRecommendation } from "../recommendation/engine";
 import { findRelatedBooks } from "../recommendation/relatedBooks";
-import { getCurrentRecommendation, getLatestScheduledFor as selectLatestScheduledFor, hasScheduledCycle } from "../recommendation/store";
+import {
+  getCurrentRecommendation,
+  getLatestScheduledFor as selectLatestScheduledFor,
+  hasScheduledCycle
+} from "../recommendation/store";
 import { searchBooks } from "../retrieval/search";
 
 import type { AppDb } from "../db/appDb";
 import type { EmbeddingProvider } from "../embedding/types";
+import type { LearningPathCandidate, LearningPathPlanner } from "../learningPath/types";
 import type {
   AppSettings,
   CurrentRecommendation,
+  LearningPath,
+  LearningPathPlannerId,
+  LearningPathPlannerInfo,
   RecommendationReason,
   RowOrderDiagnostics,
   SearchFilters,
@@ -30,8 +40,12 @@ export type RandomizeResult =
   | { readonly status: "selected"; readonly current: CurrentRecommendation }
   | { readonly status: "no_active_recommendation" | "no_random_candidate" };
 
+export type LearningPathResult =
+  | { readonly status: "created"; readonly learningPath: LearningPath }
+  | { readonly status: "planner_unavailable" | "no_candidates" }
+  | { readonly status: "planner_failed"; readonly cause: unknown };
+
 export type ReadingRecommenderService = {
-  readonly sync: () => void;
   readonly run: (reason: RecommendationReason) => Promise<CurrentRecommendation | null>;
   readonly runScheduled: (scheduledFor: string) => Promise<CurrentRecommendation | null>;
   readonly runIfSourceChanged: () => Promise<SourceChangeRunResult>;
@@ -39,6 +53,8 @@ export type ReadingRecommenderService = {
   readonly randomize: () => Promise<RandomizeResult>;
   readonly promote: (bookmeterUrl: string) => Promise<CurrentRecommendation | null>;
   readonly search: (query: string, limit?: number, filters?: SearchFilters) => Promise<readonly SearchResult[]>;
+  readonly listLearningPathPlanners: () => readonly LearningPathPlannerInfo[];
+  readonly createLearningPath: (topic: string, plannerId: LearningPathPlannerId) => Promise<LearningPathResult>;
   readonly diagnostics: () => readonly RowOrderDiagnostics[];
   readonly getSettings: () => AppSettings;
   readonly getLatestScheduledFor: () => string | null;
@@ -95,8 +111,10 @@ export function createReadingRecommenderService(input: {
   readonly appDb: AppDb;
   readonly booksDbPath: string;
   readonly embeddingProvider?: EmbeddingProvider | null;
+  readonly learningPathPlanners?: readonly LearningPathPlanner[];
 }): ReadingRecommenderService {
   let mutationQueue: Promise<void> = Promise.resolve();
+  const learningPathPlanners = input.learningPathPlanners ?? [];
   const settingsListeners = new Set<() => void>();
   const closeListeners = new Set<() => void>();
 
@@ -118,6 +136,22 @@ export function createReadingRecommenderService(input: {
     }
   }
 
+  function syncSourceAndReconcileIfChanged(): boolean {
+    const sourceBooks = loadCurrentSourceBooks();
+    const syncResult = syncSourceBooksIfChanged({
+      db: input.appDb.db,
+      booksDbPath: input.booksDbPath,
+      sourceBooks
+    });
+
+    if (!syncResult) {
+      return false;
+    }
+
+    runRecommendation({ db: input.appDb.db, settings: getSettings(input.appDb.db), reason: "source_changed" });
+    return true;
+  }
+
   async function currentInternal(): Promise<CurrentRecommendation | null> {
     const settings = getSettings(input.appDb.db);
     const current = await currentWithRelated(input.appDb, settings.relatedCount, input.embeddingProvider);
@@ -129,7 +163,10 @@ export function createReadingRecommenderService(input: {
     return runInternal("initial", null);
   }
 
-  async function runInternal(reason: RecommendationReason, scheduledFor: string | null): Promise<CurrentRecommendation | null> {
+  async function runInternal(
+    reason: RecommendationReason,
+    scheduledFor: string | null
+  ): Promise<CurrentRecommendation | null> {
     const sourceBooks = loadCurrentSourceBooks();
     syncSourceBooks({ db: input.appDb.db, booksDbPath: input.booksDbPath, sourceBooks });
     const settings = getSettings(input.appDb.db);
@@ -137,14 +174,40 @@ export function createReadingRecommenderService(input: {
     return currentWithRelated(input.appDb, settings.relatedCount, input.embeddingProvider);
   }
 
-  return {
-    sync() {
-      void enqueueMutation(() => {
-        const sourceBooks = loadCurrentSourceBooks();
-        syncSourceBooks({ db: input.appDb.db, booksDbPath: input.booksDbPath, sourceBooks });
-      }).catch(() => undefined);
-    },
+  async function prepareLearningPathCandidates(topic: string): Promise<readonly LearningPathCandidate[]> {
+    syncSourceAndReconcileIfChanged();
+    const snapshots = getCurrentSnapshots(input.appDb.db);
+    const snapshotsByUrl = new Map(snapshots.map((book) => [book.bookmeterUrl, book]));
+    const lexical = searchBooks({ db: input.appDb.db, query: topic, limit: 15 }).flatMap((result) => {
+      const snapshot = snapshotsByUrl.get(result.bookmeterUrl);
+      return snapshot ? [snapshot] : [];
+    });
+    let semanticScores: ReadonlyMap<string, number> = new Map();
 
+    if (input.embeddingProvider) {
+      const embeddings = await ensureBookEmbeddings({
+        db: input.appDb.db,
+        provider: input.embeddingProvider,
+        books: snapshots
+      });
+      const queryVector = await embedQuery({ provider: input.embeddingProvider, query: topic });
+
+      if (queryVector) {
+        semanticScores = createSemanticScores({ queryVector, embeddings });
+      }
+    }
+
+    const semantic = snapshots.flatMap((book) => {
+      const score = semanticScores.get(book.bookmeterUrl);
+      return score === undefined ? [] : [{ book, score }];
+    });
+    return mergeLearningPathCandidates({ lexical, semantic, limit: 40 }).map((book, index) => ({
+      id: `b${index + 1}`,
+      book
+    }));
+  }
+
+  return {
     async run(reason) {
       return enqueueMutation(() => runInternal(reason, null));
     },
@@ -161,20 +224,11 @@ export function createReadingRecommenderService(input: {
 
     async runIfSourceChanged() {
       return enqueueMutation(async () => {
-        const sourceBooks = loadCurrentSourceBooks();
-        const syncResult = syncSourceBooksIfChanged({ db: input.appDb.db, booksDbPath: input.booksDbPath, sourceBooks });
+        const changed = syncSourceAndReconcileIfChanged();
         const settings = getSettings(input.appDb.db);
 
-        if (!syncResult) {
-          return {
-            changed: false,
-            current: await currentWithRelated(input.appDb, settings.relatedCount, input.embeddingProvider)
-          };
-        }
-
-        runRecommendation({ db: input.appDb.db, settings, reason: "source_changed" });
         return {
-          changed: true,
+          changed,
           current: await currentWithRelated(input.appDb, settings.relatedCount, input.embeddingProvider)
         };
       });
@@ -186,8 +240,7 @@ export function createReadingRecommenderService(input: {
 
     async randomize() {
       return enqueueMutation(async () => {
-        const sourceBooks = loadCurrentSourceBooks();
-        syncSourceBooksIfChanged({ db: input.appDb.db, booksDbPath: input.booksDbPath, sourceBooks });
+        syncSourceAndReconcileIfChanged();
         const settings = getSettings(input.appDb.db);
         const result = randomizeRecommendation({ db: input.appDb.db, settings, randomValue: Math.random() });
 
@@ -215,8 +268,7 @@ export function createReadingRecommenderService(input: {
 
     async search(query, limit, filters) {
       return enqueueMutation(async () => {
-        const sourceBooks = loadCurrentSourceBooks();
-        syncSourceBooksIfChanged({ db: input.appDb.db, booksDbPath: input.booksDbPath, sourceBooks });
+        syncSourceAndReconcileIfChanged();
         const settings = getSettings(input.appDb.db);
         const resultLimit = limit ?? settings.searchResultCount;
 
@@ -248,6 +300,40 @@ export function createReadingRecommenderService(input: {
           return searchBooks({ db: input.appDb.db, query, limit: resultLimit, filters });
         }
       });
+    },
+
+    listLearningPathPlanners() {
+      return learningPathPlanners.map(({ id, label, modelId }) => ({ id, label, modelId }));
+    },
+
+    async createLearningPath(topic, plannerId) {
+      const planner = learningPathPlanners.find(({ id }) => id === plannerId);
+
+      if (!planner) {
+        return { status: "planner_unavailable" };
+      }
+
+      const candidates = await enqueueMutation(() => prepareLearningPathCandidates(topic));
+
+      if (candidates.length === 0) {
+        return { status: "no_candidates" };
+      }
+
+      // The captured candidates remain stable while other queued work proceeds.
+      try {
+        const { output, modelId } = await planner.plan({ topic, candidates });
+        return {
+          status: "created",
+          learningPath: normalizeLearningPath({
+            topic,
+            planner: { id: planner.id, label: planner.label, modelId },
+            candidates,
+            output
+          })
+        };
+      } catch (cause) {
+        return { status: "planner_failed", cause };
+      }
     },
 
     diagnostics() {

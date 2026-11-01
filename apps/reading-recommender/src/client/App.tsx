@@ -12,6 +12,7 @@ import {
   updateSettings
 } from "./api";
 import { BookDetailDialog, BookPanel, OpacLinks, isActivationKey } from "./components/bookUi";
+import { LearningPathPage } from "./pages/LearningPathPage";
 import { SearchPage } from "./pages/SearchPage";
 
 import type { AppSettings, CurrentRecommendation, RowOrderDiagnostics } from "../shared/types";
@@ -200,6 +201,7 @@ function CurrentView(input: {
       {selectedRelatedBook ? (
         <BookDetailDialog
           book={selectedRelatedBook}
+          reasons={selectedRelatedBook.reasons}
           titleId="related-book-title"
           onClose={() => setSelectedRelatedBook(null)}
         />
@@ -361,6 +363,9 @@ export function App(): JSX.Element {
         <NavLink className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to="/search">
           検索
         </NavLink>
+        <NavLink className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to="/learning-path">
+          学習ルート
+        </NavLink>
         <NavLink className={({ isActive }) => `nav-link${isActive ? " active" : ""}`} to="/settings">
           設定
         </NavLink>
@@ -388,6 +393,7 @@ export function App(): JSX.Element {
           }
         />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/learning-path" element={<LearningPathPage />} />
         <Route
           path="/settings"
           element={

@@ -3,6 +3,8 @@ import { createServer as createViteServer } from "vite";
 
 import { openAppDb } from "../db/appDb";
 import { createOpenAIEmbeddingProviderFromEnv } from "../embedding/openai";
+import { createAnthropicLearningPathPlannerFromEnv } from "../learningPath/anthropic";
+import { createOpenAILearningPathPlannerFromEnv } from "../learningPath/openai";
 
 import { createApiServer } from "./api";
 import { createRecommendationAutomation } from "./automation";
@@ -17,13 +19,17 @@ async function main(): Promise<void> {
   const service = createReadingRecommenderService({
     appDb,
     booksDbPath,
-    embeddingProvider: createOpenAIEmbeddingProviderFromEnv(process.env)
+    embeddingProvider: createOpenAIEmbeddingProviderFromEnv(process.env),
+    learningPathPlanners: [
+      createAnthropicLearningPathPlannerFromEnv(process.env),
+      createOpenAILearningPathPlannerFromEnv(process.env)
+    ].filter((planner) => planner !== null)
   });
   const api = await createApiServer(service);
   createRecommendationAutomation({ service, booksDbPath }).start();
   const vite = await createViteServer({ server: { host: "0.0.0.0", port: 5173 } });
 
-  await api.listen({ host: "127.0.0.1", port: 4174 });
+  await api.listen({ host: "127.0.0.1", port: 4175 });
   await vite.listen();
   vite.printUrls();
 }

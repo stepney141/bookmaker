@@ -45,6 +45,10 @@ export type SemanticSearchInput = {
 };
 
 const QUERY_PHRASES = [
+  /を(?:勉強|学習|独学)したい/gu,
+  /を学びたい/gu,
+  /について学ぶ/gu,
+  /(?:に)?入門したい(?=\s|$)/gu,
   /に関連する/gu,
   /に関する/gu,
   /について/gu,

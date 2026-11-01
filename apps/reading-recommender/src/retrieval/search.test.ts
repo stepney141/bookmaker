@@ -96,6 +96,38 @@ function openSearchFixture(dir: string): AppDb {
       author: "高橋三郎",
       description: "所蔵確認が未取得の研究書です。",
       remoteRank: 5
+    }),
+    book({
+      url: "https://bookmeter.example/category-introduction",
+      isbnOrAsin: null,
+      title: "圏論への第一歩",
+      author: "井上四郎",
+      description: "対象と射を説明します。",
+      remoteRank: 6
+    }),
+    book({
+      url: "https://bookmeter.example/category-applications",
+      isbnOrAsin: null,
+      title: "圏論の応用",
+      author: "小林五郎",
+      description: "関手と自然変換の応用を扱います。",
+      remoteRank: 7
+    }),
+    book({
+      url: "https://bookmeter.example/mathematics",
+      isbnOrAsin: null,
+      title: "数学の世界",
+      author: "加藤六郎",
+      description: "抽象的な構造を論じます。",
+      remoteRank: 8
+    }),
+    book({
+      url: "https://bookmeter.example/numbers",
+      isbnOrAsin: null,
+      title: "数の世界",
+      author: "吉田七郎",
+      description: "整数と実数を論じます。",
+      remoteRank: 9
     })
   ];
 
@@ -104,6 +136,50 @@ function openSearchFixture(dir: string): AppDb {
 }
 
 describe("searchBooks", () => {
+  it.each([
+    "圏論を勉強したい",
+    "圏論を学びたい",
+    "圏論について学ぶ",
+    "圏論を学習したい",
+    "圏論を独学したい",
+    "圏論に入門したい",
+    "圏論入門したい"
+  ])("returns the topic's results for the learning query %s", (query) => {
+    const dir = createTempDir();
+    const appDb = openSearchFixture(dir);
+
+    try {
+      const topicResults = searchBooks({ db: appDb.db, query: "圏論", limit: 10 });
+      const learningResults = searchBooks({ db: appDb.db, query, limit: 10 });
+
+      expect(topicResults.map((result) => result.bookmeterUrl)).toEqual([
+        "https://bookmeter.example/category-introduction",
+        "https://bookmeter.example/category-applications"
+      ]);
+      expect(learningResults).toEqual(topicResults);
+    } finally {
+      appDb.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.each(["数学", "数学を勉強したい", "数学を学びたい", "数学を学習したい"])(
+    "preserves meaningful characters within the topic in %s",
+    (query) => {
+      const dir = createTempDir();
+      const appDb = openSearchFixture(dir);
+
+      try {
+        const results = searchBooks({ db: appDb.db, query, limit: 10 });
+
+        expect(results.map((result) => result.bookmeterUrl)).toEqual(["https://bookmeter.example/mathematics"]);
+      } finally {
+        appDb.close();
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
+  );
+
   it("extracts the topic from natural-language Japanese queries", () => {
     const dir = createTempDir();
     try {

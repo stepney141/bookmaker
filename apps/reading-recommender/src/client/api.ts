@@ -1,6 +1,9 @@
 import type {
   AppSettings,
   CurrentRecommendation,
+  LearningPath,
+  LearningPathPlannerId,
+  LearningPathPlannerInfo,
   RowOrderDiagnostics,
   SearchFilters,
   SearchResult
@@ -84,6 +87,17 @@ export function searchBooks(query: string, limit?: number, filters?: SearchFilte
   }
 
   return requestJson<readonly SearchResult[]>(`/api/search?${params.toString()}`);
+}
+
+export function fetchLearningPathPlanners(): Promise<readonly LearningPathPlannerInfo[]> {
+  return requestJson<readonly LearningPathPlannerInfo[]>("/api/learning-paths/planners");
+}
+
+export function createLearningPath(topic: string, planner: LearningPathPlannerId): Promise<LearningPath> {
+  return requestJson<LearningPath>("/api/learning-paths", {
+    method: "POST",
+    body: JSON.stringify({ topic, planner })
+  });
 }
 
 export function fetchSettings(): Promise<AppSettings> {

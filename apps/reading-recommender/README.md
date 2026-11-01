@@ -1,6 +1,7 @@
 # Reading Recommender
 
-`data/books.sqlite` に保存された読書メーターの読みたい本リスト・積読リストから、今週読む本を推薦し、関連書籍と検索結果を表示するローカル常駐 Web アプリケーション。
+`data/books.sqlite` に保存された読書メーターの読みたい本リストと積読リストから、今週読む本を推薦し、関連書籍と検索結果を表示するローカル常駐 Web アプリケーション。
+学びたいテーマを入力すると、リスト内の本で学習ルートを作成する。
 
 このアプリは [bookmaker モノレポ](../../README.md) のワークスペース `@bookmaker/reading-recommender`（`apps/reading-recommender`）である。`bookmeter` が生成した共有 SQLite を読み取り専用で参照し、推薦状態や検索 index は別 SQLite に保存する。
 
@@ -12,8 +13,9 @@
 4. **読了判定** — 主推薦が最新の共有 SQLite から消えた場合、読了済みとして新しい推薦を作る
 5. **関連書籍の表示** — 主推薦と近い内容の本を関連書籍として表示する
 6. **書籍検索** — キーワードや自然文 query に対して、FTS5、metadata、任意の embedding を使って関連書籍を検索する
-7. **rowid 診断** — `wish` と `stacked` の rowid 先頭・末尾を表示し、読書メーター上の表示順を確認する
-8. **設定管理** — 推薦曜日、推薦時刻、件数、`remote_rank` の解釈を app DB に保存する
+7. **学習ルート**では、読みたい本と積読本から関連書を選び、入門から発展までの読む順番と選定理由を示す。
+8. **rowid 診断** — `wish` と `stacked` の rowid 先頭・末尾を表示し、読書メーター上の表示順を確認する
+9. **設定管理** — 推薦曜日、推薦時刻、件数、`remote_rank` の解釈を app DB に保存する
 
 現在の実装は、実装計画の第 1-5 段階の一部を含む MVP である。OpenAI embedding は環境変数がある場合だけ検索 ranking と関連書籍 ranking に加わり、未設定または失敗時は FTS5、metadata、語彙一致に戻る。週次 scheduler と file watcher は app process 内で動作し、Android push 通知と認証は後続段階で追加する。
 
@@ -32,7 +34,7 @@ pnpm --filter @bookmaker/reading-recommender run build
 PORT=4174 pnpm --filter @bookmaker/reading-recommender run start
 ```
 
-開発時は Vite が `http://localhost:5173/` を配信し、API は `http://127.0.0.1:4174/api/*` で動く。本番時は Fastify が `dist/client` を静的配信し、同じ origin で `/api/*` を提供する。
+開発時は Vite が `http://localhost:5173/` を配信し、API は `http://127.0.0.1:4175/api/*` で動く。開発用 API のポートは本番の `4174` と分けているため、常駐中の compose service と同時に起動できる。本番時は Fastify が `dist/client` を静的配信し、同じ origin で `/api/*` を提供する。
 
 ```text
 開発: http://localhost:5173/
@@ -102,9 +104,11 @@ docker compose up -d reading-recommender
 | `GET /api/health` | API の疎通確認 |
 | `GET /api/recommendations/current` | 現在の主推薦、副推薦、関連書籍を返す |
 | `POST /api/recommendations/run` | source sync と推薦更新を手動実行する |
-| `POST /api/recommendations/random` | 現在の推薦日を維持し、主推薦を重み付きランダムで選び直す |
+| `POST /api/recommendations/random` | source DB の変更を反映してから、主推薦を重み付きランダムで選び直す |
 | `POST /api/recommendations/promote` | 副推薦または任意の現行書籍を主推薦に昇格する |
 | `GET /api/search?q=...` | 書籍を検索する |
+| `GET /api/learning-paths/planners` | 有効な学習ルートの生成元を `id`、`label`、`modelId` の一覧で返す |
+| `POST /api/learning-paths` | 学習目的と生成元を受け取り、学習ルートを返す |
 | `GET /api/books/diagnostics/row-order` | `wish` と `stacked` の rowid 診断を返す |
 | `GET /api/settings` | 設定を返す |
 | `PATCH /api/settings` | 設定を更新する |
@@ -117,6 +121,34 @@ docker compose up -d reading-recommender
 }
 ```
 
+`POST /api/learning-paths` は次の JSON body を受け取る。
+`topic` は前後の空白を除いて 1〜200 文字、`planner` は `anthropic` または `openai` を指定する。
+入力が不正な場合は `400 invalid_request`、生成元が無効な場合は `409 planner_unavailable`、候補がない場合は `409 no_candidates`、生成に失敗した場合は `502 planner_failed` を返す。
+エラー本文は `{ "error": "<code>" }` の形式である。
+
+```json
+{
+  "topic": "測度論的確率論を勉強したい",
+  "planner": "anthropic"
+}
+```
+
+## 学習ルート
+
+「学習ルート」画面で学びたいテーマを入力すると、読みたい本と積読本を段階ごとに並べ、到達目標と各本の選定理由を表示する。
+本の行から所蔵情報と詳細を確認でき、リスト内で補えない段階や分野は不足として示す。
+生成結果は保存しないため、画面を離れると再生成が必要になる。
+
+生成元には Claude と OpenAI を使える。
+Claude は `ANTHROPIC_API_KEY`、OpenAI は `OPENAI_API_KEY` と `OPENAI_LEARNING_PATH_MODEL` の両方を設定すると有効になる。
+両方が有効な場合は画面で選択でき、最初は Claude を選択する。
+設定変更後はサーバーを再起動する。
+
+候補は app DB の現行 `book_snapshot` から取り、語彙検索の上位 15 件と、利用可能な場合の embedding 類似度順の候補を重複なく統合し、最大 40 件を生成元に渡す。
+生成元は関連性を判定して本を順序付け、リスト外の本は提案しない。
+候補の準備を終えてから生成を待つため、その間も検索や推薦更新を実行できる。
+画面の末尾には生成元と応答に記録された実際のモデルを表示する。
+
 ## 推薦ロジック
 
 推薦は bundle policy と scoring engine に分けている。bundle policy は、現在の推薦を継続するか、新しい推薦 bundle を作るかを決める。scoring engine は、新しい bundle が必要な場合に候補本を順位付けする。
@@ -125,7 +157,8 @@ docker compose up -d reading-recommender
 
 初期 score は、積読本の優先、読書メーター上の表示順、書誌 metadata の充実度を使う。順位付けでは積読本を常に読みたい本より上位に置き、score は各リスト内の順序だけを決める。`rowid` は履歴的な登録順ではなく、最後の `bookmeter` 同期時の読書メーター表示順を反映するため、app setting の `remoteOrderAgeDirection` で解釈を切り替える。
 
-「ランダムに選ぶ」は、最新の `wish ∪ stacked` から表示中の主推薦と副推薦を除き、同一シリーズに先行巻が残っている後続巻も除外する。積読本と読みたい本の両方が抽出対象に残る場合、抽出確率全体の 80% を積読本、20% を読みたい本に割り当て、各リスト内では score に比例して選ぶ。一方のリストだけが残る場合は、そのリスト内の score に比例して選ぶ。選んだ主推薦以外の副推薦は score 順で作り直す。この操作は現在の推薦 cycle を更新するため、cycle ID、推薦日、読了予定日は変わらず、変更前後の推薦は `primary_randomized` event に記録される。抽出対象がなければ推薦を変更せず、API は `409 no_random_candidate` を返す。
+「ランダムに選ぶ」は、source DB に変更があれば同期と推薦更新を先に行う。
+その時点の `wish ∪ stacked` から主推薦と副推薦を除き、同一シリーズに先行巻が残っている後続巻も除外する。積読本と読みたい本の両方が抽出対象に残る場合、抽出確率全体の 80% を積読本、20% を読みたい本に割り当て、各リスト内では score に比例して選ぶ。一方のリストだけが残る場合は、そのリスト内の score に比例して選ぶ。選んだ主推薦以外の副推薦は score 順で作り直す。ランダム選択は同期後の推薦 cycle を更新するため、その cycle ID、推薦日、読了予定日は変わらず、変更前後の推薦は `primary_randomized` event に記録される。抽出対象がなければ同期後の推薦を変更せず、API は `409 no_random_candidate` を返す。
 
 ## データベース
 
@@ -159,6 +192,7 @@ server 起動時に scheduler と file watcher が開始する。scheduler は `
 予定実行では `recommendation_cycle.scheduled_for` に UTC ISO 時刻を保存する。同じ `scheduled_for` の `scheduled` cycle が既にあれば、process 再起動後も同じ週次枠は重複実行しない。起動時に未実行の週次枠が過去にあれば、直後に予定実行を行う。
 
 file watcher は `data/books.sqlite`、`data/books.sqlite-wal`、`data/books.sqlite-shm` を `chokidar` で監視する。変更検知後は debounce と read retry を挟み、最終的には `source_hash` が変わった場合だけ `source_changed` の推薦 cycle を作る。これにより、同一内容の再生成や一時的な WAL 書き込みでは推薦を前倒ししない。
+検索、ランダム選択、学習ルートの候補準備でも、source DB に変更があれば同期と `source_changed` の推薦更新を行う。
 
 ## プロジェクト構成
 
@@ -171,9 +205,14 @@ apps/reading-recommender/
 ├── vite.config.ts
 └── src/
     ├── client/                 # React SPA
-    │   ├── App.tsx             # 推薦・検索・設定・診断の画面
+    │   ├── App.tsx             # 画面のルーティングと推薦、設定、診断
     │   ├── api.ts              # Browser API client
+    │   ├── components/
+    │   │   └── bookUi.tsx      # 書籍カード、詳細ダイアログ、図書館リンク
     │   ├── main.tsx            # React entry point
+    │   ├── pages/
+    │   │   ├── LearningPathPage.tsx # 学習ルート画面
+    │   │   └── SearchPage.tsx   # 検索画面
     │   └── styles.css          # 画面スタイル
     ├── db/                     # SQLite 境界
     │   ├── appDb.ts            # app DB 接続・settings・snapshot 読み込み
@@ -182,6 +221,14 @@ apps/reading-recommender/
     │   ├── sourceBooks.ts      # source DB read-only repository
     │   └── sync.ts             # source sync
     ├── embedding/              # embedding provider と cache
+    ├── learningPath/           # 学習ルートの候補抽出、生成、正規化
+    │   ├── anthropic.ts        # Claude adapter
+    │   ├── candidates.ts       # 語彙候補と意味候補の統合
+    │   ├── normalize.ts        # 候補 ID の照合と重複除去
+    │   ├── openai.ts           # OpenAI adapter
+    │   ├── prompt.ts           # 学習目的と候補から prompt を作成
+    │   ├── schema.ts           # 両生成元で共有する出力 schema
+    │   └── types.ts            # planner interface と入出力型
     ├── recommendation/         # 推薦ロジック
     │   ├── engine.ts           # bundle policy と状態遷移
     │   ├── relatedBooks.ts     # 関連書籍の算出
@@ -207,6 +254,7 @@ apps/reading-recommender/
 - **better-sqlite3** — source DB と app DB の SQLite 接続
 - **zod** — API request body と settings の検証
 - **Vitest** — source sync と推薦ロジックのテスト
+- **@anthropic-ai/sdk** は、Claude による学習ルートの生成に使う。
 
 ## 環境変数
 
@@ -218,9 +266,11 @@ apps/reading-recommender/
 | `READING_RECOMMENDER_DB_PATH` | 任意 | app DB のパス。既定は `data/reading-recommender.sqlite` |
 | `PORT` | 任意 | 本番 Fastify server の port。既定は `4174` |
 | `WORKSPACE_ROOT` | 任意 | workspace root の明示指定。通常は自動検出する |
-| `OPENAI_API_KEY` | 任意 | 設定すると OpenAI embedding を検索 ranking と関連書籍 ranking に使う |
+| `ANTHROPIC_API_KEY` | 任意 | 設定すると Claude による学習ルート生成が有効になる。要求モデルは `claude-opus-5-5` |
+| `OPENAI_API_KEY` | 任意 | OpenAI embedding を検索、関連書籍、学習ルートの候補抽出に使う。学習ルートの生成には `OPENAI_LEARNING_PATH_MODEL` も必要 |
 | `OPENAI_EMBEDDING_MODEL` | 任意 | embedding model。既定は `text-embedding-3-large` |
 | `OPENAI_EMBEDDING_DIMENSIONS` | 任意 | embedding 次元数。既定は `1024` |
+| `OPENAI_LEARNING_PATH_MODEL` | 任意 | 学習ルートを生成する OpenAI model。既定値はなく、`OPENAI_API_KEY` と両方を設定すると生成が有効になる |
 
 後続段階で Firebase Cloud Messaging と認証を追加する場合は、Firebase service account、`APP_AUTH_TOKEN` などを追加する。
 
@@ -233,6 +283,12 @@ pnpm --filter @bookmaker/reading-recommender run build
 ```
 
 現在のテストは、source DB の read-only 同期、`wish ∪ stacked` の統合、rowid 由来の rank、主推薦の継続、主推薦消失時の読了判定、積読本優先の順位付けとランダム抽出を検証する。
+
+学習ルートのテストは、候補の順序と上限、削除済みの本の除外、未知 ID と重複の除去、prompt の書誌情報と説明文の 1,200 文字上限を検証する。
+両 adapter の応答解釈では、正常応答、拒否、打ち切り、schema 不一致を外部通信なしで確認する。
+service と API は fake planner と一時 DB を使い、成功とエラー応答に加え、生成待ちの間にも別の queue 操作が完了することを検証する。
+client API は fetch を置き換え、生成元の一覧取得、生成リクエスト、エラーコードの受け渡しを確認する。
+実 API による確認は、利用する生成元の環境変数を設定した後に行う。
 
 ## 運用上の注意
 
