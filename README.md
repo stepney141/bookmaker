@@ -21,8 +21,8 @@ bookmaker/
 ├── eslint.config.mjs        # 共通の ESLint 設定（リポジトリ全体に適用）
 ├── .prettierrc.json         # 共通の Prettier 設定
 ├── pyproject.toml           # uv workspace ルート（[tool.uv.workspace]）
-├── rules/                   # コーディング規約（coding.md / typescript.md）
-├── run_tasks.sh             # cron のエントリポイント（後述）
+├── RULES.md                 # コーディング規約
+├── run_tasks.sh             # 定期実行のエントリポイント（後述）
 ├── data/
 │   ├── books.sqlite                 # 共有 SQLite（bookmeter が生成・更新）
 │   └── reading-recommender.sqlite   # reading-recommender の派生状態
@@ -57,11 +57,11 @@ uv sync        # Python ワークスペースの依存を解決（Python プロ�
 
 ### 定期実行（`run_tasks.sh`）
 
-`run_tasks.sh` は cron のエントリポイントで、bookmeter の `wish` と `stacked` スクリプトを順に実行し、結果をコミット・プッシュする（履歴の `auto-updated: …` コミット）。失敗時は Discord に通知する。
+`run_tasks.sh` は定期実行のエントリポイントで、`apps/bookmeter/systemd/` の systemd user timer から起動される。ユニットは `~/.config/systemd/user` にコピーして有効化する。`daily` では bookmeter の `wish` と `stacked` スクリプトを順に実行し、`weekly` では読みたい本の図書館所蔵を再取得する。どちらも結果をコミット・プッシュし（履歴の `auto-updated: …` コミット）、失敗時は Discord に通知する。
 
 ## コーディング規約
 
-リポジトリ全体の TypeScript に適用する規約は `rules/coding.md` と `rules/typescript.md` にまとめ、`eslint.config.mjs` で機械的に検査している。要点は Result 型による期待されるエラーの表現、依存性注入による層分離、イミュータブルな更新、`any` の禁止と明示的な戻り値型、Vitest による colocated テストである。
+リポジトリ全体の TypeScript に適用する規約は `RULES.md` にまとめ、`eslint.config.mjs` で機械的に検査している。要点は Result 型による期待されるエラーの表現、依存性注入による層分離、イミュータブルな更新、`any` の禁止と明示的な戻り値型、Vitest による colocated テストである。
 
 ## モノレポへのプロジェクト追加
 

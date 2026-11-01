@@ -133,6 +133,7 @@ apps/bookmeter/
 │       ├── bookmaker.ts        # 読書メータースクレイパー
 │       └── kinokuniya.ts       # 紀伊國屋書店 説明文スクレイパー
 ├── csv/                        # CSV出力先
+├── systemd/                    # run_tasks.sh を定期実行する systemd user unit
 ├── mathlib_ja.txt              # 数学図書室の蔵書ISBNリスト
 ├── package.json
 └── tsconfig.json               # ../../tsconfig.base.json を継承

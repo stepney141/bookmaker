@@ -44,8 +44,7 @@ services:
 
   sqlite-backup:
     build:
-      context: .
-      dockerfile: docker/sqlite-backup/Dockerfile
+      context: ./apps/reading-recommender/backup
     image: bookmaker/sqlite-backup:local
     profiles:
       - backup
