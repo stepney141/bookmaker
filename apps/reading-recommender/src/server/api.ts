@@ -2,11 +2,12 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { z } from "zod";
 
-import { SEARCH_MAX_RESULTS } from "../shared/searchLimits";
-import { DEFAULT_SETTINGS } from "../shared/settings";
+import { SEARCH_MAX_RESULTS } from "../utils/search-limits";
+
+import { DEFAULT_SETTINGS } from "./settings";
 
 import type { ReadingRecommenderService } from "./service";
-import type { SearchFilters } from "../shared/types";
+import type { SearchFilters } from "../types/api";
 import type { FastifyInstance } from "fastify";
 
 const settingsSchema = z.object({

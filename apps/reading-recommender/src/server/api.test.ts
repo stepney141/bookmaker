@@ -1,11 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_SETTINGS } from "../shared/settings";
-
 import { createApiServer } from "./api";
+import { DEFAULT_SETTINGS } from "./settings";
 
 import type { ReadingRecommenderService } from "./service";
-import type { LearningPath } from "../shared/types";
+import type { LearningPath } from "../types/api";
 
 const learningPath: LearningPath = {
   topic: "圏論",

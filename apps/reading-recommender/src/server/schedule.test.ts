@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_SETTINGS } from "../shared/settings";
-
 import { computeCurrentOrPreviousScheduledRun, computeDueScheduledRun, computeNextScheduledRun } from "./schedule";
+import { DEFAULT_SETTINGS } from "./settings";
 
 describe("recommendation schedule", () => {
   it("computes the next weekly run in the configured timezone", () => {

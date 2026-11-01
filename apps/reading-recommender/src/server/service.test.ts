@@ -5,16 +5,15 @@ import { join } from "node:path";
 import Database from "better-sqlite3";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getCurrentSnapshots, getSettings, openAppDb } from "../db/appDb";
-import { syncSourceBooks } from "../db/sync";
-import { ensureBookEmbeddings } from "../embedding/repository";
-import { runRecommendation } from "../recommendation/engine";
-
+import { getCurrentSnapshots, getSettings, openAppDb } from "./db/appDb";
+import { syncSourceBooks } from "./db/sync";
+import { ensureBookEmbeddings } from "./embedding/repository";
+import { runRecommendation } from "./recommendation/engine";
 import { createReadingRecommenderService } from "./service";
 
-import type { EmbeddingProvider } from "../embedding/types";
-import type { LearningPathPlanner, LearningPathPlanResult } from "../learningPath/types";
-import type { SourceBook } from "../shared/types";
+import type { EmbeddingProvider } from "./embedding/types";
+import type { LearningPathPlanner, LearningPathPlanResult } from "./learningPath/types";
+import type { SourceBook } from "../types/api";
 
 function book(input: Partial<SourceBook> & Pick<SourceBook, "bookmeterUrl" | "title" | "remoteRank">): SourceBook {
   return {

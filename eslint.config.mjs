@@ -67,7 +67,7 @@ export default tseslint.config(
       "import/order": [
         "warn",
         {
-          groups: ["builtin", "external", "parent", "sibling", "index", "object", "type"],
+          groups: ["builtin", "external", "internal", "parent", "sibling", "index", "object", "type"],
           pathGroupsExcludedImportTypes: ["builtin"],
           alphabetize: {
             order: "asc"
@@ -133,6 +133,32 @@ export default tseslint.config(
       "import/named": "off",
       "import/default": "off",
       "import/no-named-as-default-member": "off"
+    }
+  },
+
+  {
+    files: ["apps/reading-recommender/src/**/*.{ts,tsx}"],
+    rules: {
+      "import/no-restricted-paths": [
+        "error",
+        {
+          basePath: `${import.meta.dirname}/apps/reading-recommender/src`,
+          zones: [
+            ...["recommendations", "search", "learning-path", "settings", "diagnostics"].map((feature) => ({
+              target: `./features/${feature}`,
+              from: "./features",
+              except: [`./${feature}`]
+            })),
+            { target: "./features", from: "./app" },
+            { target: ["./components", "./lib", "./testing", "./types", "./utils"], from: ["./features", "./app"] },
+            { target: "./server", from: ["./app", "./features", "./components", "./lib", "./testing"] },
+            {
+              target: ["./app", "./features", "./components", "./lib", "./testing", "./types", "./utils"],
+              from: "./server"
+            }
+          ]
+        }
+      ]
     }
   },
 

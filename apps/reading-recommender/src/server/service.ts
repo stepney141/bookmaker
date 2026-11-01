@@ -1,23 +1,23 @@
-import { getCurrentSnapshots, getSettings, saveSettings } from "../db/appDb";
-import { createSourceBooksRepository } from "../db/sourceBooks";
-import { syncSourceBooks, syncSourceBooksIfChanged } from "../db/sync";
-import { createRelatedSemanticScores } from "../embedding/related";
-import { ensureBookEmbeddings } from "../embedding/repository";
-import { createSemanticScores, embedQuery } from "../embedding/search";
-import { mergeLearningPathCandidates } from "../learningPath/candidates";
-import { normalizeLearningPath } from "../learningPath/normalize";
-import { promoteRecommendation, randomizeRecommendation, runRecommendation } from "../recommendation/engine";
-import { findRelatedBooks } from "../recommendation/relatedBooks";
+import { getCurrentSnapshots, getSettings, saveSettings } from "./db/appDb";
+import { createSourceBooksRepository } from "./db/sourceBooks";
+import { syncSourceBooks, syncSourceBooksIfChanged } from "./db/sync";
+import { createRelatedSemanticScores } from "./embedding/related";
+import { ensureBookEmbeddings } from "./embedding/repository";
+import { createSemanticScores, embedQuery } from "./embedding/search";
+import { mergeLearningPathCandidates } from "./learningPath/candidates";
+import { normalizeLearningPath } from "./learningPath/normalize";
+import { promoteRecommendation, randomizeRecommendation, runRecommendation } from "./recommendation/engine";
+import { findRelatedBooks } from "./recommendation/relatedBooks";
 import {
   getCurrentRecommendation,
   getLatestScheduledFor as selectLatestScheduledFor,
   hasScheduledCycle
-} from "../recommendation/store";
-import { searchBooks } from "../retrieval/search";
+} from "./recommendation/store";
+import { searchBooks } from "./retrieval/search";
 
-import type { AppDb } from "../db/appDb";
-import type { EmbeddingProvider } from "../embedding/types";
-import type { LearningPathCandidate, LearningPathPlanner } from "../learningPath/types";
+import type { AppDb } from "./db/appDb";
+import type { EmbeddingProvider } from "./embedding/types";
+import type { LearningPathCandidate, LearningPathPlanner } from "./learningPath/types";
 import type {
   AppSettings,
   CurrentRecommendation,
@@ -29,7 +29,7 @@ import type {
   SearchFilters,
   SearchResult,
   SourceBook
-} from "../shared/types";
+} from "../types/api";
 
 export type SourceChangeRunResult = {
   readonly changed: boolean;

@@ -1,6 +1,6 @@
 import { Temporal as PolyfillTemporal } from "temporal-polyfill-lite";
 
-import type { AppSettings } from "../shared/types";
+import type { AppSettings } from "../types/api";
 
 type TemporalApi = typeof PolyfillTemporal;
 type GlobalWithTemporal = typeof globalThis & {

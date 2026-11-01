@@ -1,0 +1,136 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+import { getCurrentSnapshots, openAppDb } from "../db/appDb";
+import { syncSourceBooks } from "../db/sync";
+
+import { ensureBookEmbeddings } from "./repository";
+
+import type { EmbeddingProvider } from "./types";
+import type { SourceBook } from "../../types/api";
+
+function createTempDir(): string {
+  return mkdtempSync(join(tmpdir(), "reading-recommender-embedding-"));
+}
+
+function sourceBook(description: string, index = 1): SourceBook {
+  return {
+    bookmeterUrl: `https://bookmeter.example/security-${index}`,
+    isbnOrAsin: "9784000000011",
+    title: "情報セキュリティの基礎",
+    author: "山田太郎",
+    publisher: "テスト出版",
+    publishedDate: "2026",
+    description,
+    inWish: true,
+    inStacked: false,
+    sophiaLibraryStatus: "unknown",
+    utokyoLibraryStatus: "unknown",
+    sophiaOpacUrl: "",
+    utokyoOpacUrl: "",
+    wishRowid: index,
+    stackedRowid: null,
+    remoteRank: index,
+    remoteRankSource: "wish"
+  };
+}
+
+function mockProvider(): EmbeddingProvider & {
+  readonly calls: () => number;
+  readonly batchSizes: () => readonly number[];
+} {
+  let calls = 0;
+  const batchSizes: number[] = [];
+
+  return {
+    providerId: "mock",
+    modelId: "mock-model",
+    dimension: 3,
+    calls: () => calls,
+    batchSizes: () => batchSizes,
+    embed(input) {
+      calls += 1;
+      batchSizes.push(input.texts.length);
+      return Promise.resolve(input.texts.map(() => Float32Array.from([1, 0, 0])));
+    }
+  };
+}
+
+describe("ensureBookEmbeddings", () => {
+  it("caches vectors and refreshes them when embedding input changes", async () => {
+    const dir = createTempDir();
+    try {
+      const appDb = openAppDb(join(dir, "app.sqlite"));
+      const provider = mockProvider();
+
+      syncSourceBooks({
+        db: appDb.db,
+        booksDbPath: "fixture",
+        sourceBooks: [sourceBook("暗号、認証、脆弱性を扱います。")]
+      });
+
+      const first = await ensureBookEmbeddings({
+        db: appDb.db,
+        provider,
+        books: getCurrentSnapshots(appDb.db)
+      });
+      const second = await ensureBookEmbeddings({
+        db: appDb.db,
+        provider,
+        books: getCurrentSnapshots(appDb.db)
+      });
+
+      expect(provider.calls()).toBe(1);
+      expect(first.get("https://bookmeter.example/security-1")?.vector[0]).toBe(1);
+      expect(second.get("https://bookmeter.example/security-1")?.vector[0]).toBe(1);
+
+      syncSourceBooks({
+        db: appDb.db,
+        booksDbPath: "fixture",
+        sourceBooks: [sourceBook("安全な通信と公開鍵暗号を扱います。")]
+      });
+      await ensureBookEmbeddings({
+        db: appDb.db,
+        provider,
+        books: getCurrentSnapshots(appDb.db)
+      });
+
+      expect(provider.calls()).toBe(2);
+
+      appDb.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("embeds missing books in bounded batches", async () => {
+    const dir = createTempDir();
+    try {
+      const appDb = openAppDb(join(dir, "app.sqlite"));
+      const provider = mockProvider();
+      const sourceBooks = Array.from({ length: 130 }, (_, index) => sourceBook(`説明文 ${index}`, index + 1));
+
+      syncSourceBooks({
+        db: appDb.db,
+        booksDbPath: "fixture",
+        sourceBooks
+      });
+
+      const embeddings = await ensureBookEmbeddings({
+        db: appDb.db,
+        provider,
+        books: getCurrentSnapshots(appDb.db)
+      });
+
+      expect(provider.batchSizes()).toEqual([64, 64, 2]);
+      expect(embeddings.size).toBe(130);
+
+      appDb.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

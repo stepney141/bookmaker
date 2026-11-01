@@ -1,13 +1,12 @@
 import fastifyStatic from "@fastify/static";
 import dotenv from "dotenv";
 
-import { openAppDb } from "../db/appDb";
-import { createOpenAIEmbeddingProviderFromEnv } from "../embedding/openai";
-import { createAnthropicLearningPathPlannerFromEnv } from "../learningPath/anthropic";
-import { createOpenAILearningPathPlannerFromEnv } from "../learningPath/openai";
-
 import { createApiServer } from "./api";
 import { createRecommendationAutomation } from "./automation";
+import { openAppDb } from "./db/appDb";
+import { createOpenAIEmbeddingProviderFromEnv } from "./embedding/openai";
+import { createAnthropicLearningPathPlannerFromEnv } from "./learningPath/anthropic";
+import { createOpenAILearningPathPlannerFromEnv } from "./learningPath/openai";
 import { getAppDbPath, getBooksDbPath, getClientDistPath, getEnvPath } from "./paths";
 import { createReadingRecommenderService } from "./service";
 

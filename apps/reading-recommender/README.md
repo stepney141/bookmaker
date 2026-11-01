@@ -196,6 +196,8 @@ file watcher は `data/books.sqlite`、`data/books.sqlite-wal`、`data/books.sql
 
 ## プロジェクト構成
 
+React SPA は [bulletproof-react](https://github.com/alan2207/bulletproof-react) の構成に従う。同プロジェクトは SPA の構成だけを定めているので、Fastify 側のコードは `src/server/` に集約し、内部構成は独自のままとしている。
+
 ```
 apps/reading-recommender/
 ├── index.html
@@ -204,48 +206,72 @@ apps/reading-recommender/
 ├── tsconfig.server.json
 ├── vite.config.ts
 └── src/
-    ├── client/                 # React SPA
-    │   ├── App.tsx             # 画面のルーティングと推薦、設定、診断
-    │   ├── api.ts              # Browser API client
-    │   ├── components/
-    │   │   └── bookUi.tsx      # 書籍カード、詳細ダイアログ、図書館リンク
-    │   ├── main.tsx            # React entry point
-    │   ├── pages/
-    │   │   ├── LearningPathPage.tsx # 学習ルート画面
-    │   │   └── SearchPage.tsx   # 検索画面
-    │   └── styles.css          # 画面スタイル
-    ├── db/                     # SQLite 境界
-    │   ├── appDb.ts            # app DB 接続・settings・snapshot 読み込み
-    │   ├── hash.ts             # SHA-256 helper
-    │   ├── migrations.ts       # app DB migration SQL
-    │   ├── sourceBooks.ts      # source DB read-only repository
-    │   └── sync.ts             # source sync
-    ├── embedding/              # embedding provider と cache
-    ├── learningPath/           # 学習ルートの候補抽出、生成、正規化
-    │   ├── anthropic.ts        # Claude adapter
-    │   ├── candidates.ts       # 語彙候補と意味候補の統合
-    │   ├── normalize.ts        # 候補 ID の照合と重複除去
-    │   ├── openai.ts           # OpenAI adapter
-    │   ├── prompt.ts           # 学習目的と候補から prompt を作成
-    │   ├── schema.ts           # 両生成元で共有する出力 schema
-    │   └── types.ts            # planner interface と入出力型
-    ├── recommendation/         # 推薦ロジック
-    │   ├── engine.ts           # bundle policy と状態遷移
-    │   ├── relatedBooks.ts     # 関連書籍の算出
-    │   ├── scoring.ts          # score component
-    │   └── store.ts            # 推薦 cycle の永続化
-    ├── retrieval/
-    │   └── search.ts           # FTS5 + metadata + embedding 検索
-    ├── server/                 # Fastify server
-    │   ├── api.ts              # API route 定義
-    │   ├── dev.ts              # 開発起動
-    │   ├── index.ts            # 本番起動
-    │   ├── paths.ts            # workspace path 解決
-    │   └── service.ts          # API から呼ぶ application service
-    └── shared/
+    ├── main.tsx                # React entry point
+    ├── index.css               # 画面スタイル
+    ├── app/                    # アプリケーション層
+    │   ├── app.tsx             # provider と router の合成
+    │   ├── provider.tsx        # 起動時に取得する共有データの context
+    │   ├── router.tsx          # ルート表
+    │   └── routes/             # ルートごとに feature を合成する
+    ├── components/             # 複数の feature で使う UI
+    │   ├── book-detail-dialog.tsx # 詳細ダイアログ
+    │   ├── layouts/
+    │   │   └── main-layout.tsx # 見出しとナビゲーション
+    │   └── opac-links.tsx      # 図書館リンク
+    ├── features/               # 画面単位の機能。api、components、utils を必要な分だけ持つ
+    │   ├── diagnostics/        # 診断
+    │   ├── learning-path/      # 学習ルート
+    │   ├── recommendations/    # 推薦
+    │   ├── search/             # 検索
+    │   └── settings/           # 設定
+    ├── lib/
+    │   └── api-client.ts       # fetch wrapper と API エラー型
+    ├── testing/
+    │   └── fetch-mock.ts       # fetch のテスト用スタブ
+    ├── types/
+    │   └── api.ts              # client/server 共有型
+    ├── utils/
+    │   ├── book-labels.ts      # 書籍の表示ラベル
+    │   ├── is-activation-key.ts # キーボード操作の判定
+    │   └── search-limits.ts    # 検索件数の上限 (client/server 共有)
+    └── server/                 # Fastify server
+        ├── api.ts              # API route 定義
+        ├── automation.ts       # 週次推薦と source DB 監視の起動
+        ├── dev.ts              # 開発起動
+        ├── index.ts            # 本番起動
+        ├── paths.ts            # workspace path 解決
+        ├── schedule.ts         # 週次予定時刻の計算
+        ├── service.ts          # API から呼ぶ application service
         ├── settings.ts         # 既定設定
-        └── types.ts            # client/server 共有型
+        ├── db/                 # SQLite 境界
+        │   ├── appDb.ts        # app DB 接続・settings・snapshot 読み込み
+        │   ├── hash.ts         # SHA-256 helper
+        │   ├── migrations.ts   # app DB migration SQL
+        │   ├── sourceBooks.ts  # source DB read-only repository
+        │   └── sync.ts         # source sync
+        ├── embedding/          # embedding provider と cache
+        ├── learningPath/       # 学習ルートの候補抽出、生成、正規化
+        │   ├── anthropic.ts    # Claude adapter
+        │   ├── candidates.ts   # 語彙候補と意味候補の統合
+        │   ├── normalize.ts    # 候補 ID の照合と重複除去
+        │   ├── openai.ts       # OpenAI adapter
+        │   ├── prompt.ts       # 学習目的と候補から prompt を作成
+        │   ├── schema.ts       # 両生成元で共有する出力 schema
+        │   └── types.ts        # planner interface と入出力型
+        ├── recommendation/     # 推薦ロジック
+        │   ├── engine.ts       # bundle policy と状態遷移
+        │   ├── relatedBooks.ts # 関連書籍の算出
+        │   ├── scoring.ts      # score component
+        │   └── store.ts        # 推薦 cycle の永続化
+        └── retrieval/
+            └── search.ts       # FTS5 + metadata + embedding 検索
 ```
+
+依存は共有層の `components`、`lib`、`testing`、`types`、`utils` から `features`、`app` へ一方向に流れる。feature は別の feature を import せず、複数の feature にまたがる処理は `app/routes` と `app/provider.tsx` で合成する。SPA と `src/server` の間で共有するのは `types` と `utils` だけである。これらの規則はリポジトリ直下の `eslint.config.mjs` にある `import/no-restricted-paths` で検査している。feature を追加するときは同ファイルの feature 一覧にも名前を加える。加えないと、その feature からの import が検査されない。
+
+SPA では、`src/` 直下のディレクトリをまたぐ import に `@/` を使い、同じ feature 内と同じディレクトリ内には相対パスを使う。`src/server` は相対パスだけを使う。`tsc` は `@/` を書き換えないので、サーバーの出力に残ると実行時に解決できない。そのため `tsconfig.server.json` には `paths` を定義せず、誤って使うと型検査で失敗するようにしている。
+
+SPA のファイル名は kebab-case とし、テストは `__tests__/` に置く。`src/server` は従来の camelCase と、テストを実装の隣に置く配置を維持している。
 
 ## 主要な依存関係
 

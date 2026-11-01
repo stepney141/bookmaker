@@ -6,6 +6,6 @@
     "rootDir": "src",
     "types": ["node"]
   },
-  "include": ["src/db", "src/recommendation", "src/retrieval", "src/server", "src/shared"],
+  "include": ["src/server"],
   "exclude": ["**/*.test.ts"]
 }
