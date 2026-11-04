@@ -23,6 +23,7 @@ bookmaker/
 ├── pyproject.toml           # uv workspace ルート（[tool.uv.workspace]）
 ├── RULES.md                 # コーディング規約
 ├── run_tasks.sh             # 定期実行のエントリポイント（後述）
+├── testdata/                # 複数アプリのテストで共有する固定データ
 ├── data/
 │   ├── books.sqlite                 # 共有 SQLite（bookmeter が生成・更新）
 │   └── reading-recommender.sqlite   # reading-recommender の派生状態
@@ -77,7 +78,7 @@ uv sync        # Python ワークスペースの依存を解決（Python プロ�
 - 読み手が持つ派生状態（キャッシュ、FTS インデックス、設定、埋め込みなど）は自前の DB に保存する。`reading-recommender` は `data/reading-recommender.sqlite` を使い、`data/books.sqlite` にはテーブル・カラム・行を一切追加しない。
 - DB は WAL モードで運用しているため、「1 writer + 複数 reader」の同時アクセスは安全。
 - パスはワークスペースルートからの相対（`data/books.sqlite`）で解決し、環境変数 `BOOKS_DB_PATH` で上書き可能にする。絶対パスを決め打ちしない。
-- スキーマの正は `apps/bookmeter/src/db/schema.ts` とする。言語間でスキーマ定義を共有しようとせず、各読み手が read-only 前提の独自モデルを持つ。
+- スキーマの正は `apps/bookmeter/src/db/schema.ts` とする。言語間でスキーマ定義を共有しようとせず、各読み手が read-only 前提の独自モデルを持つ。書き手と読み手のずれは、`testdata/source-books-contract.json` を両側のテストで共有して検出する。
 
 ### 新しい TypeScript プロジェクトを追加する
 

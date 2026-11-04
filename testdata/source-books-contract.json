@@ -1,0 +1,45 @@
+{
+  "tables": ["wish", "stacked"],
+  "columns": [
+    "bookmeter_url",
+    "isbn_or_asin",
+    "book_title",
+    "author",
+    "publisher",
+    "published_date",
+    "sophia_opac",
+    "utokyo_opac",
+    "exist_in_sophia",
+    "exist_in_utokyo",
+    "sophia_mathlib_opac",
+    "description"
+  ],
+  "sampleRow": {
+    "bookmeter_url": "https://bookmeter.com/books/1000001",
+    "isbn_or_asin": "4062938428",
+    "book_title": "契約検証用の本",
+    "author": "契約 太郎",
+    "publisher": "契約出版",
+    "published_date": "2024-01-01",
+    "sophia_opac": "https://sophia.example/opac/1",
+    "utokyo_opac": "",
+    "exist_in_sophia": "Yes",
+    "exist_in_utokyo": "No",
+    "sophia_mathlib_opac": "",
+    "description": "契約検証用の説明文です。"
+  },
+  "placeholderTitles": [
+    "Not_found_in_OpenBD",
+    "Not_found_in_ISBNdb",
+    "Not_found_in_Amazon",
+    "Not_found_in_NDL",
+    "Not_found_in_GoogleBooks",
+    "Not_found_in_CiNii",
+    "INVALID_ISBN",
+    "OpenBD_API_Error",
+    "ISBNdb_API_Error",
+    "NDL_API_Error",
+    "GoogleBooks_API_Error",
+    "CiNii_API_Error"
+  ]
+}

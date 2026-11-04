@@ -7,7 +7,8 @@ describe("HttpError", () => {
   it("includes the HTTP status code in the message when available", () => {
     const error = new HttpError({ source: "OpenBD", status: 429 });
 
-    expect(error.message).toBe("HTTP error from OpenBD (HTTP status code: 429)");
+    expect(error.context).toEqual({ source: "OpenBD", status: 429 });
+    expect(error.message).toContain("429");
   });
 });
 
@@ -16,7 +17,7 @@ describe("httpToFetcherError", () => {
     const fetcherError = httpToFetcherError(new HttpError({ source: "NDL", status: 503 }));
 
     expect(fetcherError.context).toEqual({ type: "apiError", source: "NDL", status: 503 });
-    expect(fetcherError.message).toBe("Fetcher error [apiError] from NDL (HTTP status code: 503)");
+    expect(fetcherError.message).toContain("503");
   });
 
   it("maps missing HTTP status to a network error", () => {

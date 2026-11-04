@@ -18,11 +18,11 @@ describe("canFetchKinokuniyaDescription", () => {
 
 describe("buildKinokuniyaBookUrl", () => {
   it("routes Japanese books to dsg-01", () => {
-    expect(buildKinokuniyaBookUrl(asIsbn10("4062938428"))).toContain("/dsg-01-");
+    expect(buildKinokuniyaBookUrl(asIsbn10("4062938428"))).toBe("https://www.kinokuniya.co.jp/f/dsg-01-9784062938426");
   });
 
   it("routes non-Japanese books to dsg-02", () => {
-    expect(buildKinokuniyaBookUrl(asIsbn10("0306406152"))).toContain("/dsg-02-");
+    expect(buildKinokuniyaBookUrl(asIsbn10("0306406152"))).toBe("https://www.kinokuniya.co.jp/f/dsg-02-9780306406157");
   });
 });
 

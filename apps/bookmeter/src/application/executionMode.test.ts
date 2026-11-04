@@ -11,48 +11,68 @@ const unwrapOk = <T>(result: { ok: true; value: T } | { ok: false; err: Error })
 };
 
 describe("resolveExecutionPlan", () => {
-  it("resolves scrape with no downstream phases", () => {
-    const plan = unwrapOk(
-      resolveExecutionPlan({
-        target: "wish",
-        execution: { type: "scrape" }
-      })
-    );
+  // Expected phases come from the execution-mode table in apps/bookmeter/README.md.
+  it.each([
+    {
+      mode: "sync",
+      scrape: { type: "remote", doLogin: true },
+      phases: {
+        compare: true,
+        fetchBiblio: true,
+        crawlDescriptions: true,
+        persist: true,
+        exportCsv: true,
+        uploadDb: true
+      }
+    },
+    {
+      mode: "scrape",
+      scrape: { type: "remote", doLogin: true },
+      phases: {
+        compare: false,
+        fetchBiblio: false,
+        crawlDescriptions: false,
+        persist: false,
+        exportCsv: false,
+        uploadDb: false
+      }
+    },
+    {
+      mode: "export",
+      scrape: { type: "local-cache" },
+      phases: {
+        compare: false,
+        fetchBiblio: false,
+        crawlDescriptions: false,
+        persist: true,
+        exportCsv: true,
+        uploadDb: true
+      }
+    },
+    {
+      mode: "enrich",
+      scrape: { type: "local-cache" },
+      phases: {
+        compare: false,
+        fetchBiblio: true,
+        crawlDescriptions: true,
+        persist: true,
+        exportCsv: true,
+        uploadDb: true
+      }
+    }
+  ])("resolves the documented scrape source and phases for $mode", ({ mode, scrape, phases }) => {
+    const parsed = unwrapOk(parseCliArgs(["node", "bookmeter", mode, "wish"]));
+    if (parsed.type === "help") {
+      expect.fail(`${mode} should produce a run command`);
+    }
 
-    expect(plan.modeName).toBe("scrape");
+    const plan = unwrapOk(resolveExecutionPlan(parsed.option));
+
     expect(plan.refetch).toEqual(new Set());
     expect(plan.ignoreDiff).toBe(false);
-    expect(plan.scrape).toEqual({ type: "remote", doLogin: true });
-    expect(plan.phases.compare).toBe(false);
-    expect(plan.phases.fetchBiblio).toBe(false);
-    expect(plan.phases.crawlDescriptions).toBe(false);
-    expect(plan.phases.persist).toBe(false);
-    expect(plan.phases.exportCsv).toBe(false);
-    expect(plan.phases.uploadDb).toBe(false);
-  });
-
-  it("resolves the export phase set as a local-cache pipeline", () => {
-    const plan = unwrapOk(
-      resolveExecutionPlan({
-        target: "wish",
-        execution: {
-          type: "custom",
-          scrape: { type: "local-cache" },
-          enabledPhases: ["persist", "exportCsv", "uploadDb"]
-        }
-      })
-    );
-
-    expect(plan.modeName).toBe("custom");
-    expect(plan.refetch).toEqual(new Set());
-    expect(plan.ignoreDiff).toBe(false);
-    expect(plan.scrape).toEqual({ type: "local-cache" });
-    expect(plan.phases.compare).toBe(false);
-    expect(plan.phases.fetchBiblio).toBe(false);
-    expect(plan.phases.crawlDescriptions).toBe(false);
-    expect(plan.phases.persist).toBe(true);
-    expect(plan.phases.exportCsv).toBe(true);
-    expect(plan.phases.uploadDb).toBe(true);
+    expect(plan.scrape).toEqual(scrape);
+    expect(plan.phases).toEqual(phases);
   });
 
   it("rejects custom upload without persistence", () => {
@@ -126,76 +146,50 @@ describe("parseCliArgs", () => {
     });
   });
 
-  it("rejects --refetch on subcommands that do not define it", () => {
-    const result = parseCliArgs(["node", "bookmeter", "export", "wish", "--refetch"]);
+  it.each(["export", "scrape"])("rejects --refetch on %s", (mode) => {
+    const result = parseCliArgs(["node", "bookmeter", mode, "wish", "--refetch"]);
 
-    expect(result.ok).toBe(false);
-  });
-
-  it("rejects --refetch on scrape", () => {
-    const result = parseCliArgs(["node", "bookmeter", "scrape", "wish", "--refetch"]);
-
-    expect(result.ok).toBe(false);
-  });
-
-  it("parses one selected refetch service", () => {
-    const result = unwrapOk(parseCliArgs(["node", "bookmeter", "sync", "wish", "--refetch", "biblio"]));
-
-    expect(result.type).toBe("run");
-    if (result.type === "help") {
-      expect.fail("sync should produce a run command");
+    if (result.ok) {
+      expect.fail(`${mode} should reject --refetch`);
     }
 
-    expect(result.option.refetch).toEqual(["biblio"]);
+    expect(result.err.context.type).toBe("invalidCliArgs");
+    expect(result.err.context.detail).toMatch(/refetch/);
   });
 
-  it("parses multiple selected refetch services", () => {
-    const result = unwrapOk(parseCliArgs(["node", "bookmeter", "sync", "wish", "--refetch", "biblio", "holdings"]));
+  it.each([{ services: ["biblio"] }, { services: ["biblio", "holdings"] }])(
+    "parses selected refetch services $services",
+    ({ services }) => {
+      const result = unwrapOk(parseCliArgs(["node", "bookmeter", "sync", "wish", "--refetch", ...services]));
 
-    expect(result.type).toBe("run");
-    if (result.type === "help") {
-      expect.fail("sync should produce a run command");
+      if (result.type === "help") {
+        expect.fail("sync should produce a run command");
+      }
+
+      expect(result.option.refetch).toEqual(services);
     }
-
-    expect(result.option.refetch).toEqual(["biblio", "holdings"]);
-  });
+  );
 
   it("rejects an unknown refetch service", () => {
     const result = parseCliArgs(["node", "bookmeter", "sync", "wish", "--refetch", "bogus"]);
 
-    expect(result.ok).toBe(false);
+    if (result.ok) {
+      expect.fail("sync should reject the unknown refetch service");
+    }
+
+    expect(result.err.context.type).toBe("invalidCliArgs");
+    expect(result.err.context.detail).toMatch(/bogus/);
   });
 
-  it("maps export to the local-cache downstream pipeline", () => {
-    expect(unwrapOk(parseCliArgs(["node", "bookmeter", "export", "wish"]))).toEqual({
-      type: "run",
-      option: {
-        refetch: [],
-        ignoreDiff: false,
-        target: "wish",
-        execution: {
-          type: "custom",
-          scrape: { type: "local-cache" },
-          enabledPhases: ["persist", "exportCsv", "uploadDb"]
-        }
-      }
-    });
-  });
+  it("refetches all services in enrich when no service names are supplied", () => {
+    const parsed = unwrapOk(parseCliArgs(["node", "bookmeter", "enrich", "wish", "--refetch"]));
+    if (parsed.type === "help") {
+      expect.fail("enrich should produce a run command");
+    }
 
-  it("maps enrich to the local-cache metadata and description enrichment pipeline", () => {
-    expect(unwrapOk(parseCliArgs(["node", "bookmeter", "enrich", "wish", "--refetch"]))).toEqual({
-      type: "run",
-      option: {
-        refetch: ["biblio", "holdings", "description"],
-        ignoreDiff: false,
-        target: "wish",
-        execution: {
-          type: "custom",
-          scrape: { type: "local-cache" },
-          enabledPhases: ["fetchBiblio", "crawlDescriptions", "persist", "exportCsv", "uploadDb"]
-        }
-      }
-    });
+    expect(unwrapOk(resolveExecutionPlan(parsed.option)).refetch).toEqual(
+      new Set(["biblio", "holdings", "description"])
+    );
   });
 
   it("makes the enrich plan browser-backed for description completion", () => {
