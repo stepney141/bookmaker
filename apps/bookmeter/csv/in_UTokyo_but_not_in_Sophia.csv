@@ -1,4 +1,5 @@
 isbn_or_asin,book_title,author,publisher,published_date,utokyo_opac
+4121029348,死後の意識 : 科学とスピリチュアリティの宗教社会学 (中公新書),伊藤雅之,中央公論新社,,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD21364099
 4326698454,社会的ジレンマ : ゲーム理論・計算社会科学・因果推論からの解明 (シリーズ　数理・計量社会学の応用),大林真也,勁草書房,,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BD21138125
 4873114225,組み込みLinuxシステム構築,"Yaghmour,Karim Masters,Jon Ben-Yossef,Gilad ほか",オーム社,200910,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB00132942
 4871483010,コンピュータ言語進化論 : 思考増幅装置を求める知的冒険の旅 / ASCII海外ブックス,"Levine, Howard, 1947-,Rheingold, Howard, 1947-,椋田, 直子, 1941-,Howard Levine, Howard Rheingold 著,椋田直子 訳",アスキー,"Thu, 22 Dec 1988 09:00:00 +0900",https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BN02033924
@@ -100,7 +101,6 @@ isbn_or_asin,book_title,author,publisher,published_date,utokyo_opac
 4320122992,量子情報科学入門 = Introduction to Quantum Information Science,"石坂,智 小川,朋宏 河内,亮周",共立出版,201206,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB09394904
 4297129140,作って学ぶコンピュータアーキテクチャ : LLVMとRISC-5による低レイヤプログラミングの基礎,"木村,優之",技術評論社,202207,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BC15528922
 4484121034,性欲の科学 : なぜ男は「素人」に興奮し、女は「男同士」に萌えるのか,"Ogas,Ogi Gaddam,Sai 坂東,智子,1955-",阪急コミュニケーションズ,201202,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB0861535X
-4297128462,達人が教えるWebパフォーマンスチューニング : ISUCONから学ぶ高速化の実践,"藤原,俊一郎 馬場,俊彰 中西,建登 長野,雅広 金子,達哉,1991- 草野,翔",技術評論社,202206,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BC14932649
 490381419X,これならわかる工学部で学ぶ数学,"千葉,逸人,1982-",プレアデス出版,200902,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB07134061
 4478013322,完全独習ベイズ統計学入門,"小島,寛之,1958-",ダイヤモンド社,201511,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB20006408
 4806714453,〈図説〉日本の結び,"藤原,覚一,1895-1990",築地書館,201210,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BB10461270
