@@ -9,7 +9,7 @@
 
 1. **今週読む本の推薦** — 主推薦 1 冊と副推薦 2 冊を表示する
 2. **重み付きランダム推薦** — 表示中の本とシリーズの後続巻を除き、score に比例した確率で別の主推薦を選ぶ
-3. **推薦の継続判定** — 主推薦が最新の `wish ∪ stacked` に残っている限り、次回更新でも主推薦を維持する
+3. **推薦の継続判定** — 主推薦が最新の `wish ∪ stacked` に残っている限り、次回更新でも主推薦を維持する。ただし、同一シリーズの先行巻が現れた場合は先行巻に置き換える
 4. **読了判定** — 主推薦が最新の共有 SQLite から消えた場合、読了済みとして新しい推薦を作る
 5. **関連書籍の表示** — 主推薦と近い内容の本を関連書籍として表示する
 6. **書籍検索** — キーワードや自然文 query に対して、FTS5、metadata、任意の embedding を使って関連書籍を検索する
@@ -121,6 +121,11 @@ docker compose up -d reading-recommender
 }
 ```
 
+`GET /api/search` は `q` のほかに次の query を受け取る。
+`limit` は 1〜100 の整数で、省略すると設定の `searchResultCount` を使う。
+`list` は `wish` と `stacked`、`library` は `utokyo`、`sophia`、`neither` をカンマ区切りで指定する。
+不正な値には `400 invalid_request` を返す。
+
 `POST /api/learning-paths` は次の JSON body を受け取る。
 `topic` は前後の空白を除いて 1〜200 文字、`planner` は `anthropic` または `openai` を指定する。
 入力が不正な場合は `400 invalid_request`、生成元が無効な場合は `409 planner_unavailable`、候補がない場合は `409 no_candidates`、生成に失敗した場合は `502 planner_failed` を返す。
@@ -153,7 +158,7 @@ Claude は `ANTHROPIC_API_KEY`、OpenAI は `OPENAI_API_KEY` と `OPENAI_LEARNIN
 
 推薦は bundle policy と scoring engine に分けている。bundle policy は、現在の推薦を継続するか、新しい推薦 bundle を作るかを決める。scoring engine は、新しい bundle が必要な場合に候補本を順位付けする。
 
-主推薦が最新の `wish ∪ stacked` に残っている場合、週次更新や手動更新でも主推薦を維持する。主推薦が消えた場合は、最新 SQLite にその本が存在しないという事実に基づいて読了済みと判定し、新しい主推薦と副推薦を選ぶ。この判定は score より優先される。
+主推薦が最新の `wish ∪ stacked` に残っている場合、週次更新や手動更新でも主推薦を維持する。例外として、同一シリーズの先行巻が `wish ∪ stacked` に現れた場合は、シリーズを順に読めるように先行巻を主推薦に置き換え、`primary_replaced_by_series_predecessor` event に記録する。主推薦が消えた場合は、最新 SQLite にその本が存在しないという事実に基づいて読了済みと判定し、新しい主推薦と副推薦を選ぶ。これらの判定は score より優先される。
 
 初期 score は、積読本の優先、読書メーター上の表示順、書誌 metadata の充実度を使う。順位付けでは積読本を常に読みたい本より上位に置き、score は各リスト内の順序だけを決める。`rowid` は履歴的な登録順ではなく、最後の `bookmeter` 同期時の読書メーター表示順を反映するため、app setting の `remoteOrderAgeDirection` で解釈を切り替える。
 
@@ -208,6 +213,7 @@ apps/reading-recommender/
 └── src/
     ├── main.tsx                # React entry point
     ├── index.css               # 画面スタイル
+    ├── __tests__/              # SPA と server をまたぐ契約テスト
     ├── app/                    # アプリケーション層
     │   ├── app.tsx             # provider と router の合成
     │   ├── provider.tsx        # 起動時に取得する共有データの context
@@ -263,11 +269,12 @@ apps/reading-recommender/
         │   ├── relatedBooks.ts # 関連書籍の算出
         │   ├── scoring.ts      # score component
         │   └── store.ts        # 推薦 cycle の永続化
-        └── retrieval/
-            └── search.ts       # FTS5 + metadata + embedding 検索
+        ├── retrieval/
+        │   └── search.ts       # FTS5 + metadata + embedding 検索
+        └── testing/            # server のテスト用 helper (build 対象外)
 ```
 
-依存は共有層の `components`、`lib`、`testing`、`types`、`utils` から `features`、`app` へ一方向に流れる。feature は別の feature を import せず、複数の feature にまたがる処理は `app/routes` と `app/provider.tsx` で合成する。SPA と `src/server` の間で共有するのは `types` と `utils` だけである。これらの規則はリポジトリ直下の `eslint.config.mjs` にある `import/no-restricted-paths` で検査している。feature を追加するときは同ファイルの feature 一覧にも名前を加える。加えないと、その feature からの import が検査されない。
+依存は共有層の `components`、`lib`、`testing`、`types`、`utils` から `features`、`app` へ一方向に流れる。feature は別の feature を import せず、複数の feature にまたがる処理は `app/routes` と `app/provider.tsx` で合成する。SPA と `src/server` の間で共有するのは `types` と `utils` だけである。両者をまたぐテストだけは `src/__tests__` に置く。これらの規則はリポジトリ直下の `eslint.config.mjs` にある `import/no-restricted-paths` で検査している。feature を追加するときは同ファイルの feature 一覧にも名前を加える。加えないと、その feature からの import が検査されない。
 
 SPA では、`src/` 直下のディレクトリをまたぐ import に `@/` を使い、同じ feature 内と同じディレクトリ内には相対パスを使う。`src/server` は相対パスだけを使う。`tsc` は `@/` を書き換えないので、サーバーの出力に残ると実行時に解決できない。そのため `tsconfig.server.json` には `paths` を定義せず、誤って使うと型検査で失敗するようにしている。
 
@@ -309,11 +316,12 @@ pnpm --filter @bookmaker/reading-recommender run build
 ```
 
 現在のテストは、source DB の read-only 同期、`wish ∪ stacked` の統合、rowid 由来の rank、主推薦の継続、主推薦消失時の読了判定、積読本優先の順位付けとランダム抽出を検証する。
+source DB の形式は `testdata/source-books-contract.json` を bookmeter の書き込み側と本アプリの読み込み側のテストで共有し、片側だけの変更を検出する。
 
 学習ルートのテストは、候補の順序と上限、削除済みの本の除外、未知 ID と重複の除去、prompt の書誌情報と説明文の 1,200 文字上限を検証する。
-両 adapter の応答解釈では、正常応答、拒否、打ち切り、schema 不一致を外部通信なしで確認する。
+両 adapter は global `fetch` の差し替えで `plan` を実行し、外部通信なしで送信内容、正常応答、拒否、打ち切り、schema 不一致を確認する。
 service と API は fake planner と一時 DB を使い、成功とエラー応答に加え、生成待ちの間にも別の queue 操作が完了することを検証する。
-client API は fetch を置き換え、生成元の一覧取得、生成リクエスト、エラーコードの受け渡しを確認する。
+client API の各関数は fetch を置き換えて URL、メソッド、本文を確認し、`src/__tests__/client-server-contract.test.ts` は同じ関数を実際の Fastify route につないで検証する。
 実 API による確認は、利用する生成元の環境変数を設定した後に行う。
 
 ## 運用上の注意

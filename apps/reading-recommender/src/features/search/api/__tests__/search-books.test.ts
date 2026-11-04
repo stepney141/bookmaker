@@ -1,48 +1,42 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { searchBooks } from "@/features/search/api/search-books";
 import { stubFetch } from "@/testing/fetch-mock";
 
-import { searchBooks } from "../search-books";
-
-describe("client API", () => {
+describe("search requests", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("sends a search limit when one is provided", async () => {
+  it.each([
+    {
+      name: "only the search query",
+      limit: undefined,
+      filters: undefined,
+      params: { q: "暗号" }
+    },
+    {
+      name: "the requested search limit",
+      limit: 20,
+      filters: undefined,
+      params: { q: "暗号", limit: "20" }
+    },
+    {
+      name: "comma-separated search filters",
+      limit: 20,
+      filters: { lists: ["wish", "stacked"] as const, libraries: ["utokyo", "sophia"] as const },
+      params: { q: "暗号", limit: "20", list: "wish,stacked", library: "utokyo,sophia" }
+    }
+  ])("sends $name", async ({ limit, filters, params }) => {
     const fetchMock = stubFetch();
 
-    await searchBooks("暗号", 20);
+    await searchBooks("暗号", limit, filters);
 
-    const request = fetchMock.mock.calls[0]?.[0];
-
-    if (typeof request !== "string") {
-      expect(request).toBeTypeOf("string");
-      return;
-    }
-
-    const url = new URL(request, "http://localhost");
-
+    const url = new URL(fetchMock.mock.calls[0]?.[0] as string, "http://localhost");
+    const request = new Request(url, fetchMock.mock.calls[0]?.[1]);
     expect(url.pathname).toBe("/api/search");
-    expect(url.searchParams.get("q")).toBe("暗号");
-    expect(url.searchParams.get("limit")).toBe("20");
-  });
-
-  it("sends search filters when they are provided", async () => {
-    const fetchMock = stubFetch();
-
-    await searchBooks("暗号", 20, { lists: ["wish"], libraries: ["utokyo", "sophia"] });
-
-    const request = fetchMock.mock.calls[0]?.[0];
-
-    if (typeof request !== "string") {
-      expect(request).toBeTypeOf("string");
-      return;
-    }
-
-    const url = new URL(request, "http://localhost");
-
-    expect(url.searchParams.get("list")).toBe("wish");
-    expect(url.searchParams.get("library")).toBe("utokyo,sophia");
+    expect(Object.fromEntries(url.searchParams)).toEqual(params);
+    expect(request.method).toBe("GET");
+    expect(request.body).toBeNull();
   });
 });

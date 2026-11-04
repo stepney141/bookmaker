@@ -16,13 +16,33 @@ describe("recommendation schedule", () => {
     expect(computeCurrentOrPreviousScheduledRun(DEFAULT_SETTINGS, "2026-06-28T23:00:00Z")).toBe("2026-06-28T22:30:00Z");
   });
 
-  it("does not mark a scheduled slot due twice", () => {
-    expect(
-      computeDueScheduledRun({
-        settings: DEFAULT_SETTINGS,
-        latestScheduledFor: "2026-06-28T22:30:00Z",
-        now: "2026-06-28T23:00:00Z"
-      })
-    ).toBeNull();
+  it.each([
+    { latestScheduledFor: null, expectedDue: "2026-06-28T22:30:00Z" },
+    { latestScheduledFor: "2026-06-21T22:30:00Z", expectedDue: "2026-06-28T22:30:00Z" },
+    { latestScheduledFor: "2026-06-28T22:30:00Z", expectedDue: null }
+  ])(
+    "returns $expectedDue when the latest scheduled run is $latestScheduledFor",
+    ({ latestScheduledFor, expectedDue }) => {
+      expect(
+        computeDueScheduledRun({
+          settings: DEFAULT_SETTINGS,
+          latestScheduledFor,
+          now: "2026-06-28T23:00:00Z"
+        })
+      ).toBe(expectedDue);
+    }
+  );
+
+  it("uses the configured weekday, time, and timezone for the current, due, and next runs", () => {
+    const settings = {
+      recommendationDayOfWeek: 0,
+      recommendationTime: "09:00",
+      timezone: "America/New_York"
+    };
+    const now = "2026-06-28T14:00:00Z";
+
+    expect(computeCurrentOrPreviousScheduledRun(settings, now)).toBe("2026-06-28T13:00:00Z");
+    expect(computeDueScheduledRun({ settings, latestScheduledFor: null, now })).toBe("2026-06-28T13:00:00Z");
+    expect(computeNextScheduledRun(settings, now)).toBe("2026-07-05T13:00:00Z");
   });
 });

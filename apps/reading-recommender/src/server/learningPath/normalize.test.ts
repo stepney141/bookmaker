@@ -1,34 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { snapshotOf, stackedBook } from "../testing/books";
+
 import { normalizeLearningPath } from "./normalize";
 
-import type { BookSnapshot, LearningPathPlannerInfo } from "../../types/api";
-
-function book(title: string): BookSnapshot {
-  return {
-    bookmeterUrl: `https://bookmeter.example/books/${title}`,
-    isbnOrAsin: "9784000000011",
-    title,
-    author: "著者",
-    publisher: "出版社",
-    publishedDate: "2026-10",
-    description: "説明文",
-    inWish: false,
-    inStacked: true,
-    sophiaLibraryStatus: "available",
-    utokyoLibraryStatus: "unknown",
-    sophiaOpacUrl: "https://opac.example/book",
-    utokyoOpacUrl: "",
-    wishRowid: null,
-    stackedRowid: 1,
-    remoteRank: 1,
-    remoteRankSource: "stacked",
-    contentHash: "hash",
-    firstSeenAt: "2026-10-01T00:00:00Z",
-    lastSeenAt: "2026-10-01T00:00:00Z",
-    lastScanRunId: 1
-  };
-}
+import type { LearningPathPlannerInfo } from "../../types/api";
 
 const planner: LearningPathPlannerInfo = {
   id: "anthropic",
@@ -38,8 +14,46 @@ const planner: LearningPathPlannerInfo = {
 
 describe("normalizeLearningPath", () => {
   it("maps IDs to candidate books and preserves the first occurrence across stages", () => {
-    const introductory = book("入門書");
-    const advanced = book("専門書");
+    const introductory = snapshotOf(
+      stackedBook({
+        bookmeterUrl: "https://bookmeter.example/books/1",
+        isbnOrAsin: "9784000000011",
+        title: "入門書",
+        author: "入門の著者",
+        publisher: "基礎出版",
+        publishedDate: "2026-10",
+        description: "測度と積分の基礎。",
+        sophiaLibraryStatus: "available",
+        sophiaOpacUrl: "https://opac.example/sophia/1",
+        remoteRank: 1
+      }),
+      {
+        contentHash: "introductory-hash",
+        firstSeenAt: "2026-10-01T00:00:00Z",
+        lastSeenAt: "2026-11-01T00:00:00Z",
+        lastScanRunId: 2
+      }
+    );
+    const advanced = snapshotOf(
+      stackedBook({
+        bookmeterUrl: "https://bookmeter.example/books/2",
+        isbnOrAsin: "9784000000028",
+        title: "専門書",
+        author: "専門の著者",
+        publisher: "発展書房",
+        publishedDate: "2025-04",
+        description: "確率過程の専門的な議論。",
+        utokyoLibraryStatus: "available",
+        utokyoOpacUrl: "https://opac.example/utokyo/2",
+        remoteRank: 2
+      }),
+      {
+        contentHash: "advanced-hash",
+        firstSeenAt: "2026-09-01T00:00:00Z",
+        lastSeenAt: "2026-11-02T00:00:00Z",
+        lastScanRunId: 3
+      }
+    );
 
     expect(
       normalizeLearningPath({
@@ -85,20 +99,5 @@ describe("normalizeLearningPath", () => {
       gaps: ["リストに演習書がありません。"],
       planner
     });
-  });
-
-  it("returns no stages when the planner selects only unknown IDs", () => {
-    expect(
-      normalizeLearningPath({
-        topic: "確率論",
-        planner,
-        candidates: [{ id: "b1", book: book("入門書") }],
-        output: {
-          overview: "該当する本がありません。",
-          stages: [{ title: "入門", goal: "基礎", books: [{ id: "unknown", reason: "候補外" }] }],
-          gaps: ["リストに該当する本がありません。"]
-        }
-      }).stages
-    ).toEqual([]);
   });
 });

@@ -1,42 +1,26 @@
 import { describe, expect, it } from "vitest";
 
+import { snapshotOf, wishBook } from "../testing/books";
+
 import { mergeLearningPathCandidates } from "./candidates";
 
-import type { BookSnapshot } from "../../types/api";
-
-function book(index: number): BookSnapshot {
-  return {
-    bookmeterUrl: `https://bookmeter.example/books/${index}`,
-    isbnOrAsin: null,
-    title: `候補 ${index}`,
-    author: "著者",
-    publisher: "出版社",
-    publishedDate: "2026-10",
-    description: "候補の説明",
-    inWish: true,
-    inStacked: false,
-    sophiaLibraryStatus: "unknown",
-    utokyoLibraryStatus: "unknown",
-    sophiaOpacUrl: "",
-    utokyoOpacUrl: "",
-    wishRowid: index,
-    stackedRowid: null,
-    remoteRank: index,
-    remoteRankSource: "wish",
-    contentHash: `hash-${index}`,
-    firstSeenAt: "2026-10-01T00:00:00Z",
-    lastSeenAt: "2026-10-01T00:00:00Z",
-    lastScanRunId: 1
-  };
-}
+const books = Array.from({ length: 45 }, (_, index) =>
+  snapshotOf(
+    wishBook({
+      bookmeterUrl: `https://bookmeter.example/books/${index + 1}`,
+      title: `候補 ${index + 1}`,
+      remoteRank: index + 1
+    })
+  )
+);
 
 describe("mergeLearningPathCandidates", () => {
   it("keeps lexical order before semantic candidates ranked by similarity, without a score threshold", () => {
-    const lexical = [book(1), book(2)];
+    const lexical = books.slice(0, 2);
     const semantic = [
-      { book: book(3), score: 0.35 },
-      { book: book(4), score: 0.5 },
-      { book: book(5), score: 0.42 }
+      { book: books[2], score: 0.35 },
+      { book: books[3], score: 0.5 },
+      { book: books[4], score: 0.42 }
     ];
 
     expect(mergeLearningPathCandidates({ lexical, semantic, limit: 40 }).map((candidate) => candidate.title)).toEqual([
@@ -50,25 +34,26 @@ describe("mergeLearningPathCandidates", () => {
   });
 
   it("deduplicates URLs and preserves the first candidate", () => {
-    const first = book(1);
+    const first = books[0];
+    const second = books[1];
 
     expect(
       mergeLearningPathCandidates({
         lexical: [first, first],
         semantic: [
           { book: { ...first, title: "別の書誌" }, score: 0.9 },
-          { book: book(2), score: 0.5 },
-          { book: book(2), score: 0.4 }
+          { book: second, score: 0.5 },
+          { book: second, score: 0.4 }
         ],
         limit: 40
       })
-    ).toEqual([first, book(2)]);
+    ).toEqual([first, second]);
   });
 
   it("caps the merged unique candidates at 40", () => {
     const candidates = mergeLearningPathCandidates({
-      lexical: Array.from({ length: 15 }, (_, index) => book(index + 1)),
-      semantic: Array.from({ length: 45 }, (_, index) => ({ book: book(index + 1), score: 1 - index / 100 })),
+      lexical: books.slice(0, 15),
+      semantic: books.map((book, index) => ({ book, score: 1 - index / 100 })),
       limit: 40
     });
 

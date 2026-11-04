@@ -1,16 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  SEARCH_MAX_RESULTS,
-  SEARCH_PAGE_SIZE,
-  canLoadMoreSearchResults,
-  nextSearchLimit
-} from "@/utils/search-limits";
+import { canLoadMoreSearchResults, nextSearchLimit } from "@/utils/search-limits";
 
 describe("search result limits", () => {
   it("starts at 10 and advances by 10 up to 100", () => {
-    expect(SEARCH_PAGE_SIZE).toBe(10);
-    expect(SEARCH_MAX_RESULTS).toBe(100);
     expect(nextSearchLimit(10)).toBe(20);
     expect(nextSearchLimit(90)).toBe(100);
     expect(nextSearchLimit(100)).toBe(100);

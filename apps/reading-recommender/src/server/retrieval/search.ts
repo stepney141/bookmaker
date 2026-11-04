@@ -120,7 +120,7 @@ function extractTerms(normalizedQuery: string): readonly string[] {
   return [...new Set(terms)];
 }
 
-function analyzeQuery(query: string): QueryAnalysis {
+export function analyzeQuery(query: string): QueryAnalysis {
   const original = query.trim();
   const normalized = normalizeSearchText(original);
   const terms = extractTerms(normalized);

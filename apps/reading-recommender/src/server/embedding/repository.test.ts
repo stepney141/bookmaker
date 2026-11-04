@@ -1,136 +1,132 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
-import { getCurrentSnapshots, openAppDb } from "../db/appDb";
-import { syncSourceBooks } from "../db/sync";
+import { openTestAppDb } from "../testing/appDb";
+import { snapshotOf, wishBook } from "../testing/books";
 
 import { ensureBookEmbeddings } from "./repository";
 
 import type { EmbeddingProvider } from "./types";
-import type { SourceBook } from "../../types/api";
 
-function createTempDir(): string {
-  return mkdtempSync(join(tmpdir(), "reading-recommender-embedding-"));
-}
+type EmbeddingFixture = {
+  readonly marker: string;
+  readonly vector: readonly [number, number, number];
+};
 
-function sourceBook(description: string, index = 1): SourceBook {
-  return {
-    bookmeterUrl: `https://bookmeter.example/security-${index}`,
-    isbnOrAsin: "9784000000011",
-    title: "情報セキュリティの基礎",
-    author: "山田太郎",
-    publisher: "テスト出版",
-    publishedDate: "2026",
-    description,
-    inWish: true,
-    inStacked: false,
-    sophiaLibraryStatus: "unknown",
-    utokyoLibraryStatus: "unknown",
-    sophiaOpacUrl: "",
-    utokyoOpacUrl: "",
-    wishRowid: index,
-    stackedRowid: null,
-    remoteRank: index,
-    remoteRankSource: "wish"
-  };
-}
+type EmbeddingRecord = {
+  readonly text: string;
+  readonly vector: Float32Array;
+};
 
-function mockProvider(): EmbeddingProvider & {
-  readonly calls: () => number;
-  readonly batchSizes: () => readonly number[];
+function createProvider(fixtures: readonly EmbeddingFixture[]): EmbeddingProvider & {
+  readonly recordings: () => readonly EmbeddingRecord[];
 } {
-  let calls = 0;
-  const batchSizes: number[] = [];
+  let recordings: readonly EmbeddingRecord[] = [];
 
   return {
-    providerId: "mock",
-    modelId: "mock-model",
+    providerId: "fixture",
+    modelId: "fixture-model",
     dimension: 3,
-    calls: () => calls,
-    batchSizes: () => batchSizes,
+    recordings: () => recordings,
     embed(input) {
-      calls += 1;
-      batchSizes.push(input.texts.length);
-      return Promise.resolve(input.texts.map(() => Float32Array.from([1, 0, 0])));
+      let vectors: readonly Float32Array[] = [];
+
+      for (const text of input.texts) {
+        const fixture = fixtures.find(({ marker }) => text.includes(marker));
+        if (!fixture) {
+          return Promise.reject(new Error(`No embedding fixture matches: ${text}`));
+        }
+
+        const vector = Float32Array.from(fixture.vector);
+        recordings = [...recordings, { text, vector }];
+        vectors = [...vectors, vector];
+      }
+
+      return Promise.resolve(vectors);
     }
   };
 }
 
 describe("ensureBookEmbeddings", () => {
-  it("caches vectors and refreshes them when embedding input changes", async () => {
-    const dir = createTempDir();
-    try {
-      const appDb = openAppDb(join(dir, "app.sqlite"));
-      const provider = mockProvider();
+  it("reuses persisted vectors without requesting embeddings for unchanged input", async () => {
+    const appDb = openTestAppDb();
+    const provider = createProvider([{ marker: "[cached-book]", vector: [1, 2, 3] }]);
+    const book = snapshotOf(
+      wishBook({
+        bookmeterUrl: "https://bookmeter.example/cached",
+        title: "Cached book",
+        remoteRank: 1,
+        description: "[cached-book]"
+      })
+    );
 
-      syncSourceBooks({
-        db: appDb.db,
-        booksDbPath: "fixture",
-        sourceBooks: [sourceBook("暗号、認証、脆弱性を扱います。")]
-      });
+    const first = await ensureBookEmbeddings({ db: appDb.db, provider, books: [book] });
+    const cached = await ensureBookEmbeddings({ db: appDb.db, provider, books: [book] });
 
-      const first = await ensureBookEmbeddings({
-        db: appDb.db,
-        provider,
-        books: getCurrentSnapshots(appDb.db)
-      });
-      const second = await ensureBookEmbeddings({
-        db: appDb.db,
-        provider,
-        books: getCurrentSnapshots(appDb.db)
-      });
-
-      expect(provider.calls()).toBe(1);
-      expect(first.get("https://bookmeter.example/security-1")?.vector[0]).toBe(1);
-      expect(second.get("https://bookmeter.example/security-1")?.vector[0]).toBe(1);
-
-      syncSourceBooks({
-        db: appDb.db,
-        booksDbPath: "fixture",
-        sourceBooks: [sourceBook("安全な通信と公開鍵暗号を扱います。")]
-      });
-      await ensureBookEmbeddings({
-        db: appDb.db,
-        provider,
-        books: getCurrentSnapshots(appDb.db)
-      });
-
-      expect(provider.calls()).toBe(2);
-
-      appDb.close();
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    expect(first.get(book.bookmeterUrl)?.vector).toEqual(Float32Array.from([1, 2, 3]));
+    expect(cached.get(book.bookmeterUrl)?.vector).toEqual(Float32Array.from([1, 2, 3]));
+    expect(provider.recordings().map(({ text }) => text)).toEqual([expect.stringContaining("[cached-book]")]);
+    expect(provider.recordings().map(({ vector }) => vector)).toEqual([Float32Array.from([1, 2, 3])]);
   });
 
-  it("embeds missing books in bounded batches", async () => {
-    const dir = createTempDir();
-    try {
-      const appDb = openAppDb(join(dir, "app.sqlite"));
-      const provider = mockProvider();
-      const sourceBooks = Array.from({ length: 130 }, (_, index) => sourceBook(`説明文 ${index}`, index + 1));
+  it("recomputes and persists the new vector when embedding input changes", async () => {
+    const appDb = openTestAppDb();
+    const provider = createProvider([
+      { marker: "[original-description]", vector: [1, 2, 3] },
+      { marker: "[updated-description]", vector: [4, 5, 6] }
+    ]);
+    const book = snapshotOf(
+      wishBook({
+        bookmeterUrl: "https://bookmeter.example/updated",
+        title: "Updated book",
+        remoteRank: 1,
+        description: "[original-description]"
+      })
+    );
 
-      syncSourceBooks({
-        db: appDb.db,
-        booksDbPath: "fixture",
-        sourceBooks
-      });
+    await ensureBookEmbeddings({ db: appDb.db, provider, books: [book] });
+    const updatedBook = { ...book, description: "[updated-description]" };
+    const refreshed = await ensureBookEmbeddings({ db: appDb.db, provider, books: [updatedBook] });
+    const cached = await ensureBookEmbeddings({ db: appDb.db, provider, books: [updatedBook] });
 
-      const embeddings = await ensureBookEmbeddings({
-        db: appDb.db,
-        provider,
-        books: getCurrentSnapshots(appDb.db)
-      });
+    expect(refreshed.get(book.bookmeterUrl)?.vector).toEqual(Float32Array.from([4, 5, 6]));
+    expect(cached.get(book.bookmeterUrl)?.vector).toEqual(Float32Array.from([4, 5, 6]));
+    expect(provider.recordings().map(({ text }) => text)).toEqual([
+      expect.stringContaining("[original-description]"),
+      expect.stringContaining("[updated-description]")
+    ]);
+    expect(provider.recordings().map(({ vector }) => vector)).toEqual([
+      Float32Array.from([1, 2, 3]),
+      Float32Array.from([4, 5, 6])
+    ]);
+  });
 
-      expect(provider.batchSizes()).toEqual([64, 64, 2]);
-      expect(embeddings.size).toBe(130);
+  it("persists each of 130 books with the vector for its own input", async () => {
+    const appDb = openTestAppDb();
+    const fixtures = Array.from({ length: 130 }, (_, index) => ({
+      bookmeterUrl: `https://bookmeter.example/book-${index + 1}`,
+      marker: `[book-${index + 1}]`,
+      vector: [index + 1, -(index + 1), 2 * index + 1] as const
+    }));
+    const provider = createProvider(fixtures);
+    const books = fixtures.map((fixture, index) =>
+      snapshotOf(
+        wishBook({
+          bookmeterUrl: fixture.bookmeterUrl,
+          title: `Book ${index + 1}`,
+          remoteRank: index + 1,
+          description: fixture.marker
+        })
+      )
+    );
 
-      appDb.close();
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
+    const first = await ensureBookEmbeddings({ db: appDb.db, provider, books });
+    const cached = await ensureBookEmbeddings({ db: appDb.db, provider, books });
+
+    expect(first.size).toBe(130);
+    expect(cached.size).toBe(130);
+    for (const fixture of fixtures) {
+      expect(first.get(fixture.bookmeterUrl)?.vector).toEqual(Float32Array.from(fixture.vector));
+      expect(cached.get(fixture.bookmeterUrl)?.vector).toEqual(Float32Array.from(fixture.vector));
     }
   });
 });

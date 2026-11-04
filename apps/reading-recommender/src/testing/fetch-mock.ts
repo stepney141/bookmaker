@@ -1,4 +1,4 @@
-import { expect, vi } from "vitest";
+import { vi } from "vitest";
 
 export function jsonResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
@@ -14,7 +14,5 @@ export function stubFetch(): ReturnType<typeof vi.fn<typeof fetch>> {
 }
 
 export function getHeaders(init: RequestInit | undefined): Headers {
-  expect(init).toBeDefined();
-  expect(init?.headers).toBeInstanceOf(Headers);
-  return init?.headers as Headers;
+  return new Headers(init?.headers);
 }

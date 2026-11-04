@@ -7,7 +7,7 @@ import type { LearningPathPlanner, LearningPathPlanResult } from "./types";
 
 const OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions";
 // Drop the dialect URI: the request only needs the schema body.
-export const outputJsonSchema = Object.fromEntries(
+const outputJsonSchema = Object.fromEntries(
   Object.entries(z.toJSONSchema(plannerOutputSchema)).filter(([key]) => key !== "$schema")
 );
 

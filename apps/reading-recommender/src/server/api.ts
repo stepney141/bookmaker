@@ -7,7 +7,6 @@ import { SEARCH_MAX_RESULTS } from "../utils/search-limits";
 import { DEFAULT_SETTINGS } from "./settings";
 
 import type { ReadingRecommenderService } from "./service";
-import type { SearchFilters } from "../types/api";
 import type { FastifyInstance } from "fastify";
 
 const settingsSchema = z.object({
@@ -35,41 +34,25 @@ const learningPathSchema = z.object({
   planner: z.enum(["anthropic", "openai"])
 });
 
-function parseSearchLimit(value: string | undefined): number | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const limit = Number(value);
-  return Number.isInteger(limit) && limit >= 1 && limit <= SEARCH_MAX_RESULTS ? limit : undefined;
-}
-
 function parseQueryValues(value: string | readonly string[] | undefined): readonly string[] {
   if (value === undefined) {
     return [];
   }
   const values: readonly string[] = typeof value === "string" ? [value] : value;
-  return values.flatMap((item) => item.split(",").map((part: string) => part.trim())).filter((part) => part.length > 0);
+  return values.flatMap((item) => item.split(",").map((part) => part.trim()));
 }
 
-function parseSearchFilters(query: {
-  readonly list?: string | readonly string[];
-  readonly library?: string | readonly string[];
-}): SearchFilters | undefined {
-  const lists = parseQueryValues(query.list).filter(
-    (value): value is SearchFilters["lists"][number] => value === "wish" || value === "stacked"
-  );
-  const libraries = parseQueryValues(query.library).filter(
-    (value): value is SearchFilters["libraries"][number] =>
-      value === "utokyo" || value === "sophia" || value === "neither"
-  );
+const queryValuesSchema = z
+  .union([z.string(), z.array(z.string())])
+  .optional()
+  .transform(parseQueryValues);
 
-  if (lists.length === 0 && libraries.length === 0) {
-    return undefined;
-  }
-
-  return { lists: [...new Set(lists)], libraries: [...new Set(libraries)] };
-}
+const searchQuerySchema = z.object({
+  q: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(SEARCH_MAX_RESULTS).optional(),
+  list: queryValuesSchema.pipe(z.array(z.enum(["wish", "stacked"]))),
+  library: queryValuesSchema.pipe(z.array(z.enum(["utokyo", "sophia", "neither"])))
+});
 
 export async function createApiServer(service: ReadingRecommenderService): Promise<FastifyInstance> {
   const app = Fastify({ logger: true });
@@ -98,17 +81,18 @@ export async function createApiServer(service: ReadingRecommenderService): Promi
     return service.promote(parsed.data.bookmeterUrl);
   });
 
-  app.get("/api/search", (request) => {
-    const query = request.query as {
-      readonly q?: string;
-      readonly limit?: string;
-      readonly list?: string | readonly string[];
-      readonly library?: string | readonly string[];
-    };
-    const filters = parseSearchFilters(query);
-    return filters
-      ? service.search(query.q ?? "", parseSearchLimit(query.limit), filters)
-      : service.search(query.q ?? "", parseSearchLimit(query.limit));
+  app.get("/api/search", (request, reply) => {
+    const parsed = searchQuerySchema.safeParse(request.query);
+
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid_request" });
+    }
+
+    const query = parsed.data;
+    return service.search(query.q ?? "", query.limit, {
+      lists: [...new Set(query.list)],
+      libraries: [...new Set(query.library)]
+    });
   });
 
   app.get("/api/books/diagnostics/row-order", () => service.diagnostics());
