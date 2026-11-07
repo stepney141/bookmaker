@@ -1,4 +1,5 @@
 bookmeter_url,isbn_or_asin,book_title,author,publisher,published_date,exist_in_sophia,exist_in_utokyo,sophia_opac,utokyo_opac,sophia_mathlib_opac
+https://bookmeter.com/books/23747520,4815631336,体系的に学ぶ 安全なWebアプリケーションの作り方 第3版 : 脆弱性が生まれる原理と対策の実践,徳丸浩,ＳＢクリエイティブ,,No,No,,,
 https://bookmeter.com/books/16115101,4000614134,ブルシット・ジョブ : クソどうでもいい仕事の理論,"Graeber,David,1961-2020 酒井,隆史,1965- 芳賀,達彦,1987- ほか",岩波書店,202007,Yes,Yes,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BC01553954,https://opac.dl.itc.u-tokyo.ac.jp/opac/opac_openurl?ncid=BC01553954,
 https://bookmeter.com/books/23660459,4297160293,バックエンドの知識地図,山田顕人,技術評論社,,No,No,,,
 https://bookmeter.com/books/23277090,4814401620,APIハンズオンラーニング : 手を動かして学ぶAPIの設計と実装,LukaszDynowski MarcinDulak 苫篠早紀,オーム社,,Yes,No,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD18621648,,
