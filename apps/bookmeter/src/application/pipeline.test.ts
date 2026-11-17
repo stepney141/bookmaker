@@ -6,11 +6,12 @@ import { Ok } from "../libs/lib";
 import { fetchKinokuniyaDescription } from "../scrapers/kinokuniya";
 import { makeBook, toBookList } from "../testing/books";
 
-import { crawlDescriptionPhase, persistPhase, shouldRunDownstreamPhases } from "./pipeline";
+import { collectLatestBookList, crawlDescriptionPhase, persistPhase, shouldRunDownstreamPhases } from "./pipeline";
 
 import type { ExecutionPlan } from "./executionMode";
 import type { BookRepository } from "../db/bookRepository";
 import type { ISBN10 } from "../domain/isbn";
+import type { Bookmaker } from "../scrapers/bookmaker";
 import type * as Kinokuniya from "../scrapers/kinokuniya";
 import type { Browser } from "puppeteer";
 
@@ -70,6 +71,35 @@ const createDescriptionTestContext = (
 beforeEach(() => {
   vi.clearAllMocks();
   fetchKinokuniyaDescriptionMock.mockResolvedValue("fetched-description");
+});
+
+describe("collectLatestBookList", () => {
+  it("rejects an empty remote list with the target in the error after awaiting login", async () => {
+    const plan = makeExecutionPlan({ target: "wish", scrape: { type: "remote", doLogin: true } });
+    let loginCompleted = false;
+    const bookmaker = {
+      login: async () => {
+        await Promise.resolve();
+        loginCompleted = true;
+      },
+      explore: () => {
+        expect(loginCompleted).toBe(true);
+        return Promise.resolve(new Map());
+      }
+    } as unknown as Bookmaker;
+
+    await expect(collectLatestBookList(plan, null, {} as Browser, () => bookmaker)).rejects.toThrow(plan.target);
+  });
+
+  it("returns the same non-empty remote list", async () => {
+    const plan = makeExecutionPlan({ scrape: { type: "remote", doLogin: false } });
+    const bookList = toBookList([makeBook("scraped-book")]);
+    const bookmaker = {
+      explore: () => Promise.resolve(bookList)
+    } as unknown as Bookmaker;
+
+    await expect(collectLatestBookList(plan, null, {} as Browser, () => bookmaker)).resolves.toBe(bookList);
+  });
 });
 
 describe("shouldRunDownstreamPhases", () => {

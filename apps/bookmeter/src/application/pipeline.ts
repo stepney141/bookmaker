@@ -101,7 +101,12 @@ export async function collectLatestBookList(
     await bookmaker.login();
   }
 
-  return bookmaker.explore(plan.target, plan.scrape.doLogin);
+  const latestBookList = await bookmaker.explore(plan.target, plan.scrape.doLogin);
+  if (latestBookList.size === 0) {
+    throw new Error(`Scraped 0 books from the ${plan.target} list; stopping before the saved list is overwritten`);
+  }
+
+  return latestBookList;
 }
 
 // 後続フェーズを実行するかどうかを判定する。
