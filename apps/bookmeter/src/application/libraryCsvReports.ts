@@ -32,10 +32,6 @@ export type LibraryCsvReport = {
 
 const BASE_COLUMNS = ["isbn_or_asin", "book_title", "author", "publisher", "published_date"] as const;
 
-function hasValidReportTitle(book: Book): boolean {
-  return !book.book_title.startsWith("Not_found_in") && !book.book_title.includes("INVALID_ISBN");
-}
-
 function pickColumns(book: Book, columns: readonly ReportColumn[]): ReportRow {
   return Object.fromEntries(columns.map((column) => [column, book[column]]));
 }
@@ -44,7 +40,7 @@ const REPORT_DEFINITIONS: readonly ReportDefinition[] = [
   {
     fileName: "./csv/not_in_Sophia.csv",
     columns: BASE_COLUMNS,
-    include: (book) => book.exist_in_sophia === "No" && hasValidReportTitle(book)
+    include: (book) => book.exist_in_sophia === "No"
   },
   {
     fileName: "./csv/in_Sophia.csv",
@@ -54,27 +50,27 @@ const REPORT_DEFINITIONS: readonly ReportDefinition[] = [
   {
     fileName: "./csv/not_in_UTokyo.csv",
     columns: BASE_COLUMNS,
-    include: (book) => book.exist_in_utokyo === "No" && hasValidReportTitle(book)
+    include: (book) => book.exist_in_utokyo === "No"
   },
   {
     fileName: "./csv/in_UTokyo.csv",
     columns: [...BASE_COLUMNS, "utokyo_opac"],
-    include: (book) => book.exist_in_utokyo === "Yes" && hasValidReportTitle(book)
+    include: (book) => book.exist_in_utokyo === "Yes"
   },
   {
     fileName: "./csv/in_Sophia_but_not_in_UTokyo.csv",
     columns: [...BASE_COLUMNS, "sophia_opac"],
-    include: (book) => book.exist_in_sophia === "Yes" && book.exist_in_utokyo === "No" && hasValidReportTitle(book)
+    include: (book) => book.exist_in_sophia === "Yes" && book.exist_in_utokyo === "No"
   },
   {
     fileName: "./csv/in_UTokyo_but_not_in_Sophia.csv",
     columns: [...BASE_COLUMNS, "utokyo_opac"],
-    include: (book) => book.exist_in_sophia === "No" && book.exist_in_utokyo === "Yes" && hasValidReportTitle(book)
+    include: (book) => book.exist_in_sophia === "No" && book.exist_in_utokyo === "Yes"
   },
   {
     fileName: "./csv/not_in_Sophia_and_UTokyo.csv",
     columns: BASE_COLUMNS,
-    include: (book) => book.exist_in_sophia === "No" && book.exist_in_utokyo === "No" && hasValidReportTitle(book)
+    include: (book) => book.exist_in_sophia === "No" && book.exist_in_utokyo === "No"
   }
 ];
 

@@ -6,6 +6,7 @@ import { parse } from "papaparse";
 import { describe, expect, it, onTestFinished } from "vitest";
 
 import { makeBook, toBookList } from "../testing/books";
+import { sourceBooksContract } from "../testing/sourceBooksContract";
 
 import { createDrizzleBookRepository } from "./bookRepository";
 import { createDbClient } from "./client";
@@ -57,5 +58,30 @@ describe("createDrizzleBookRepository", () => {
     const parsed = parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true });
     expect(parsed.errors).toEqual([]);
     expect(parsed.data.map((row) => row.bookmeter_url)).toEqual(["new-1", "old-1", "old-2"]);
+  });
+
+  it("exports every book in input order and preserves not-found placeholder titles", async () => {
+    const repo = createDrizzleBookRepository(createDbClient(":memory:"));
+    const outputDir = await createTempDir();
+    const csvPath = join(outputDir, "wish.csv");
+    const books = [
+      makeBook("normal-1"),
+      ...sourceBooksContract.placeholderTitles.map((title, index) =>
+        makeBook(`not-found-${index}`, { book_title: title })
+      ),
+      makeBook("normal-2")
+    ];
+
+    expect(repo.save(toBookList(books), "wish").ok).toBe(true);
+
+    const exportResult = await repo.exportToCsv("wish", csvPath, ["bookmeter_url", "book_title"]);
+    if (!exportResult.ok) {
+      expect.fail(exportResult.err.message);
+    }
+
+    const csv = await readFile(csvPath, "utf-8");
+    const parsed = parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true });
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.data).toEqual(books.map(({ bookmeter_url, book_title }) => ({ bookmeter_url, book_title })));
   });
 });

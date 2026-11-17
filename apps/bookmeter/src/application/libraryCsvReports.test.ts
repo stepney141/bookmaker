@@ -5,6 +5,8 @@ import { sourceBooksContract } from "../testing/sourceBooksContract";
 
 import { buildLibraryCsvReports } from "./libraryCsvReports";
 
+import type { ASIN } from "../domain/isbn";
+
 const bibliographicColumns = ["isbn_or_asin", "book_title", "author", "publisher", "published_date"];
 
 const sophiaOnlyRow = {
@@ -35,10 +37,6 @@ const neitherRow = {
   publisher: "Neither publisher",
   published_date: "2024-04-04"
 };
-
-const filteredPlaceholderTitles = sourceBooksContract.placeholderTitles.filter(
-  (title) => title.startsWith("Not_found_in_") || title === "INVALID_ISBN"
-);
 
 describe("buildLibraryCsvReports", () => {
   it.each([
@@ -134,32 +132,97 @@ describe("buildLibraryCsvReports", () => {
     expect(reports.find((report) => report.fileName === expectedReport.fileName)).toEqual(expectedReport);
   });
 
-  it.each(filteredPlaceholderTitles)("retains %s only in the Sophia holdings report", (placeholderTitle) => {
+  it.each(sourceBooksContract.placeholderTitles)(
+    "lists a %s book in every report matching its holdings",
+    (placeholderTitle) => {
+      const holdingsCases = [
+        { name: "sophia-only", exist_in_sophia: "Yes", exist_in_utokyo: "No" },
+        { name: "utokyo-only", exist_in_sophia: "No", exist_in_utokyo: "Yes" },
+        { name: "both", exist_in_sophia: "Yes", exist_in_utokyo: "Yes" },
+        { name: "neither", exist_in_sophia: "No", exist_in_utokyo: "No" }
+      ] as const;
+      const reports = buildLibraryCsvReports(
+        toBookList(
+          holdingsCases.flatMap(({ name, ...holdings }) => [
+            makeBook(`${name}-placeholder`, { ...holdings, book_title: placeholderTitle }),
+            makeBook(`${name}-valid`, holdings)
+          ])
+        )
+      );
+
+      expect(
+        Object.fromEntries(reports.map((report) => [report.fileName, report.rows.map((row) => row.book_title)]))
+      ).toEqual({
+        "./csv/not_in_Sophia.csv": [
+          placeholderTitle,
+          "title:utokyo-only-valid",
+          placeholderTitle,
+          "title:neither-valid"
+        ],
+        "./csv/in_Sophia.csv": [placeholderTitle, "title:sophia-only-valid", placeholderTitle, "title:both-valid"],
+        "./csv/not_in_UTokyo.csv": [
+          placeholderTitle,
+          "title:sophia-only-valid",
+          placeholderTitle,
+          "title:neither-valid"
+        ],
+        "./csv/in_UTokyo.csv": [placeholderTitle, "title:utokyo-only-valid", placeholderTitle, "title:both-valid"],
+        "./csv/in_Sophia_but_not_in_UTokyo.csv": [placeholderTitle, "title:sophia-only-valid"],
+        "./csv/in_UTokyo_but_not_in_Sophia.csv": [placeholderTitle, "title:utokyo-only-valid"],
+        "./csv/not_in_Sophia_and_UTokyo.csv": [placeholderTitle, "title:neither-valid"]
+      });
+    }
+  );
+
+  it("conserves every normal and placeholder book across the reports matching its holdings", () => {
     const holdingsCases = [
-      { name: "sophia-only", exist_in_sophia: "Yes", exist_in_utokyo: "No" },
-      { name: "utokyo-only", exist_in_sophia: "No", exist_in_utokyo: "Yes" },
-      { name: "both", exist_in_sophia: "Yes", exist_in_utokyo: "Yes" },
-      { name: "neither", exist_in_sophia: "No", exist_in_utokyo: "No" }
+      { exist_in_sophia: "Yes", exist_in_utokyo: "No" },
+      { exist_in_sophia: "No", exist_in_utokyo: "Yes" },
+      { exist_in_sophia: "Yes", exist_in_utokyo: "Yes" },
+      { exist_in_sophia: "No", exist_in_utokyo: "No" }
     ] as const;
-    const reports = buildLibraryCsvReports(
-      toBookList(
-        holdingsCases.flatMap(({ name, ...holdings }) => [
-          makeBook(`${name}-placeholder`, { ...holdings, book_title: placeholderTitle }),
-          makeBook(`${name}-valid`, holdings)
-        ])
+    const titles = ["Normal title", ...sourceBooksContract.placeholderTitles];
+    const books = holdingsCases.flatMap((holdings, holdingsIndex) =>
+      titles.map((bookTitle, titleIndex) =>
+        makeBook(`conservation-${holdingsIndex}-${titleIndex}`, {
+          ...holdings,
+          book_title: bookTitle,
+          isbn_or_asin: `B${String(holdingsIndex * titles.length + titleIndex).padStart(9, "0")}` as ASIN
+        })
       )
     );
+    const reports = buildLibraryCsvReports(toBookList(books));
 
-    expect(
-      Object.fromEntries(reports.map((report) => [report.fileName, report.rows.map((row) => row.book_title)]))
-    ).toEqual({
-      "./csv/not_in_Sophia.csv": ["title:utokyo-only-valid", "title:neither-valid"],
-      "./csv/in_Sophia.csv": [placeholderTitle, "title:sophia-only-valid", placeholderTitle, "title:both-valid"],
-      "./csv/not_in_UTokyo.csv": ["title:sophia-only-valid", "title:neither-valid"],
-      "./csv/in_UTokyo.csv": ["title:utokyo-only-valid", "title:both-valid"],
-      "./csv/in_Sophia_but_not_in_UTokyo.csv": ["title:sophia-only-valid"],
-      "./csv/in_UTokyo_but_not_in_Sophia.csv": ["title:utokyo-only-valid"],
-      "./csv/not_in_Sophia_and_UTokyo.csv": ["title:neither-valid"]
-    });
+    for (const book of books) {
+      const reportFileNames = reports.flatMap((report) =>
+        report.rows.filter((row) => row.isbn_or_asin === book.isbn_or_asin).map(() => report.fileName)
+      );
+      const heldBySophia = book.exist_in_sophia === "Yes";
+      const heldByUTokyo = book.exist_in_utokyo === "Yes";
+
+      expect(
+        reportFileNames.filter((fileName) => ["./csv/in_Sophia.csv", "./csv/not_in_Sophia.csv"].includes(fileName))
+      ).toEqual([heldBySophia ? "./csv/in_Sophia.csv" : "./csv/not_in_Sophia.csv"]);
+      expect(
+        reportFileNames.filter((fileName) => ["./csv/in_UTokyo.csv", "./csv/not_in_UTokyo.csv"].includes(fileName))
+      ).toEqual([heldByUTokyo ? "./csv/in_UTokyo.csv" : "./csv/not_in_UTokyo.csv"]);
+
+      const differenceReportFileNames = reportFileNames.filter((fileName) =>
+        [
+          "./csv/in_Sophia_but_not_in_UTokyo.csv",
+          "./csv/in_UTokyo_but_not_in_Sophia.csv",
+          "./csv/not_in_Sophia_and_UTokyo.csv"
+        ].includes(fileName)
+      );
+      if (heldBySophia && heldByUTokyo) {
+        expect(differenceReportFileNames).toEqual([]);
+      } else if (heldBySophia) {
+        expect(differenceReportFileNames).toEqual(["./csv/in_Sophia_but_not_in_UTokyo.csv"]);
+      } else if (heldByUTokyo) {
+        expect(differenceReportFileNames).toEqual(["./csv/in_UTokyo_but_not_in_Sophia.csv"]);
+      } else {
+        expect(differenceReportFileNames).toEqual(["./csv/not_in_Sophia_and_UTokyo.csv"]);
+      }
+    }
   });
 });

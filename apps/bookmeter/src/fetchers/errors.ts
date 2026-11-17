@@ -5,8 +5,6 @@
 
 import { BaseError } from "../libs/lib";
 
-import type { BiblioinfoErrorStatus } from "./types";
-
 export type FetcherSource = "OpenBD" | "ISBNdb" | "NDL" | "GoogleBooks" | "CiNii";
 
 export type FetcherErrorContext =
@@ -121,20 +119,6 @@ export function formatErrorForLog(error: unknown): string {
 
   return String(error);
 }
-
-/** FetcherError を既存の BiblioinfoErrorStatus 文字列に変換する */
-export const toErrorStatus = (error: FetcherError): BiblioinfoErrorStatus => {
-  switch (error.context.type) {
-    case "notFound":
-      return `Not_found_in_${error.context.source}`;
-    case "apiError":
-      return `${error.context.source}_API_Error` as BiblioinfoErrorStatus;
-    case "networkError":
-      return `${error.context.source}_API_Error` as BiblioinfoErrorStatus;
-    case "invalidIsbn":
-      return "INVALID_ISBN";
-  }
-};
 
 /** HttpError → FetcherError 変換 */
 export function httpToFetcherError(httpErr: HttpError): FetcherError {

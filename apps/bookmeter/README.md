@@ -11,7 +11,7 @@
 3. **図書館所蔵検索** — CiNii Booksで上智大学・東京大学の所蔵状況とOPACリンクを取得。数学図書室の蔵書リストとも照合
 4. **書籍説明文の取得** — 紀伊國屋書店Webサイトから書籍の説明文をクロール
 5. **永続化** — SQLite（better-sqlite3 + Drizzle ORM）に保存
-6. **CSV出力** — wishリストはOPACリンク・所蔵フラグ付き、stackedリストは基本情報のみ
+6. **CSV出力** — wishリストはOPACリンク・所蔵フラグ付き、stackedリストは基本情報のみ。読書メーターに登録された本は、書誌が見つからなかった本（`Not_found_in_*`）も含めてすべてリストのCSVに載る。wishの本は、さらに所蔵状況に応じて所蔵別レポートにも載る
 7. **リモートアップロード** — Firebase StorageへSQLiteファイルをバックアップ
 
 ## 使い方
@@ -71,7 +71,7 @@ pnpm exec tsx src/index.ts sync wish --user-id 42      # ユーザーID指定
 | フェーズ | フラグなし | フラグあり |
 |---|---|---|
 | **compare** | 前回スナップショットと比較し、差分がなければ後続フェーズをスキップ | 任意の `--refetch` または `--ignore-diff` があれば、比較結果に関係なく後続フェーズを常に実行 |
-| **fetchBiblio — 書誌情報** | `book_title`, `author`, `publisher`, `published_date` の4項目がすべて有効値ならスキップ（空文字・`Not_found_in_*`・`*_API_Error`・`INVALID_ISBN` は欠損扱い） | `--refetch biblio` で全書籍を無条件に再取得 |
+| **fetchBiblio — 書誌情報** | `book_title`, `author`, `publisher`, `published_date` の4項目がすべて有効値ならスキップ（空文字・`Not_found_in_*` は欠損扱い） | `--refetch biblio` で全書籍を無条件に再取得 |
 | **fetchBiblio — 所蔵検索** | `cachedBookUrls`（DB上の wish+stacked を結合した URL セット）に含まれていればスキップ | `--refetch holdings` で全書籍を無条件に再検索 |
 | **crawlDescriptions** | `sync` はDBに既存の説明文があれば再利用して新規書籍だけを取得し、`enrich` は説明文が空の書籍を補完 | `--refetch description` で既存の説明文があっても再取得 |
 | **persist / exportCsv / uploadDb** | キャッシュ判定なし（常に実行） | 同左 |

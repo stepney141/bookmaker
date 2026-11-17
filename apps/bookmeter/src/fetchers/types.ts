@@ -7,8 +7,6 @@ import type { FetcherError } from "./errors";
 import type { Book } from "../domain/book";
 import type { Result } from "../libs/lib";
 
-export const BIBLIOINFO_SOURCES = ["OpenBD", "ISBNdb", "Amazon", "NDL", "GoogleBooks"] as const;
-
 /** 統一された fetcher 戻り値の状態型 */
 export type FetchStatus = "found" | "notFound" | "owning" | "notOwning";
 export type FetchResult = { book: Book; status: FetchStatus };
@@ -17,14 +15,10 @@ export type FetchResult = { book: Book; status: FetchStatus };
 export type FetcherResult = Result<FetchResult, FetcherError>;
 
 export type BiblioinfoErrorStatus =
-  | `Not_found_in_${(typeof BIBLIOINFO_SOURCES)[number]}`
-  | "Not_found_in_CiNii"
-  | "INVALID_ISBN"
-  | "OpenBD_API_Error"
-  | "ISBNdb_API_Error"
-  | "NDL_API_Error"
-  | "GoogleBooks_API_Error"
-  | "CiNii_API_Error";
+  | "Not_found_in_OpenBD"
+  | "Not_found_in_ISBNdb"
+  | "Not_found_in_NDL"
+  | "Not_found_in_GoogleBooks";
 
 export type FetcherCredentials = {
   cinii: string;

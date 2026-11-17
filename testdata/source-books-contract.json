@@ -28,18 +28,5 @@
     "sophia_mathlib_opac": "",
     "description": "契約検証用の説明文です。"
   },
-  "placeholderTitles": [
-    "Not_found_in_OpenBD",
-    "Not_found_in_ISBNdb",
-    "Not_found_in_Amazon",
-    "Not_found_in_NDL",
-    "Not_found_in_GoogleBooks",
-    "Not_found_in_CiNii",
-    "INVALID_ISBN",
-    "OpenBD_API_Error",
-    "ISBNdb_API_Error",
-    "NDL_API_Error",
-    "GoogleBooks_API_Error",
-    "CiNii_API_Error"
-  ]
+  "placeholderTitles": ["Not_found_in_OpenBD", "Not_found_in_ISBNdb", "Not_found_in_NDL", "Not_found_in_GoogleBooks"]
 }
