@@ -71,14 +71,20 @@ export async function createApiServer(service: ReadingRecommenderService): Promi
 
     return result.current;
   });
-  app.post("/api/recommendations/promote", (request, reply) => {
+  app.post("/api/recommendations/promote", async (request, reply) => {
     const parsed = promoteSchema.safeParse(request.body);
 
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid_request", details: parsed.error.flatten() });
     }
 
-    return service.promote(parsed.data.bookmeterUrl);
+    const result = await service.promote(parsed.data.bookmeterUrl);
+
+    if (result.status === "book_not_found") {
+      return reply.code(404).send({ error: "book_not_found" });
+    }
+
+    return result.current;
   });
 
   app.get("/api/search", (request, reply) => {

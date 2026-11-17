@@ -144,6 +144,22 @@ describe("client and server API contracts", () => {
     });
   });
 
+  it("exposes an unknown promotion target as an API request error", async () => {
+    await connectClient(
+      {
+        stacked: [{ bookmeter_url: "https://bookmeter.com/books/stacked", book_title: "Stacked book" }],
+        wish: []
+      },
+      []
+    );
+    await runRecommendation();
+
+    const result = promoteRecommendation("https://bookmeter.com/books/unknown");
+
+    await expect(result).rejects.toBeInstanceOf(ApiRequestError);
+    await expect(result).rejects.toMatchObject({ status: 404, code: "book_not_found" });
+  });
+
   it("searches within the requested list and library", async () => {
     await connectClient(searchBooksFixture, []);
 

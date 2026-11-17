@@ -40,6 +40,10 @@ export type RandomizeResult =
   | { readonly status: "selected"; readonly current: CurrentRecommendation }
   | { readonly status: "no_active_recommendation" | "no_random_candidate" };
 
+export type PromoteResult =
+  | { readonly status: "promoted"; readonly current: CurrentRecommendation }
+  | { readonly status: "book_not_found" };
+
 export type LearningPathResult =
   | { readonly status: "created"; readonly learningPath: LearningPath }
   | { readonly status: "planner_unavailable" | "no_candidates" }
@@ -51,7 +55,7 @@ export type ReadingRecommenderService = {
   readonly runIfSourceChanged: () => Promise<SourceChangeRunResult>;
   readonly current: () => Promise<CurrentRecommendation | null>;
   readonly randomize: () => Promise<RandomizeResult>;
-  readonly promote: (bookmeterUrl: string) => Promise<CurrentRecommendation | null>;
+  readonly promote: (bookmeterUrl: string) => Promise<PromoteResult>;
   readonly search: (query: string, limit?: number, filters?: SearchFilters) => Promise<readonly SearchResult[]>;
   readonly listLearningPathPlanners: () => readonly LearningPathPlannerInfo[];
   readonly createLearningPath: (topic: string, plannerId: LearningPathPlannerId) => Promise<LearningPathResult>;
@@ -259,10 +263,21 @@ export function createReadingRecommenderService(input: {
     },
 
     async promote(bookmeterUrl) {
-      return enqueueMutation(() => {
+      return enqueueMutation(async () => {
         const settings = getSettings(input.appDb.db);
-        promoteRecommendation({ db: input.appDb.db, settings, bookmeterUrl });
-        return currentWithRelated(input.appDb, settings.relatedCount, input.embeddingProvider);
+        const cycleId = promoteRecommendation({ db: input.appDb.db, settings, bookmeterUrl });
+
+        if (cycleId === null) {
+          return { status: "book_not_found" as const };
+        }
+
+        const current = await currentWithRelated(input.appDb, settings.relatedCount, input.embeddingProvider);
+
+        if (!current) {
+          throw new Error("Promoted recommendation was saved without an active recommendation");
+        }
+
+        return { status: "promoted" as const, current };
       });
     },
 

@@ -114,6 +114,7 @@ docker compose up -d reading-recommender
 | `PATCH /api/settings` | 設定を更新する |
 
 `POST /api/recommendations/promote` は次の JSON body を受け取る。
+本文が不正な場合は `400 invalid_request`、指定した本が現在のリストにない場合は `404 book_not_found` を返す。
 
 ```json
 {

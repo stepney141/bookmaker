@@ -213,6 +213,30 @@ describe("recommendation API", () => {
     });
   });
 
+  it("returns 404 for an unknown book and preserves the current primary", async () => {
+    const app = await createTestApi({ books: studyBooks });
+    const before = await app.inject({ method: "GET", url: "/api/recommendations/current" });
+
+    expect(before.statusCode).toBe(200);
+    expect(before.json<CurrentRecommendation>()).toMatchObject({
+      primary: { bookmeterUrl: "https://bookmeter.com/books/category-theory" }
+    });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/recommendations/promote",
+      payload: { bookmeterUrl: "https://bookmeter.com/books/unknown" }
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ error: "book_not_found" });
+
+    const after = await app.inject({ method: "GET", url: "/api/recommendations/current" });
+
+    expect(after.statusCode).toBe(200);
+    expect(after.json<CurrentRecommendation>().primary).toEqual(before.json<CurrentRecommendation>().primary);
+  });
+
   it.each([{}, { bookmeterUrl: "" }, { bookmeterUrl: 1 }])("rejects an invalid promotion body: %j", async (payload) => {
     const app = await createTestApi({ books: recommendationBooks });
 

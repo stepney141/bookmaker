@@ -72,26 +72,28 @@ function remoteAge(book: BookSnapshot, settings: AppSettings, maxRemoteRank: num
 }
 
 /**
- * bookmeter が書誌取得に失敗した行は、title に `Not_found_in_*` などのプレースホルダーを持つ。
+ * bookmeter が書誌を見つけられなかった行は、title に `Not_found_in_*` のプレースホルダーを持つ。
  * こうした行は推薦しても読者に意味が伝わらないため、候補から外す。
  */
 function hasUsableBiblio(book: Pick<BookSnapshot, "title">): boolean {
   const title = book.title.trim();
 
-  return !title.startsWith("Not_found_in_") && !title.endsWith("_API_Error") && title !== "INVALID_ISBN";
+  return !title.startsWith("Not_found_in_");
 }
 
 function metadataQuality(book: BookSnapshot): ScoreContribution {
   const fields = [book.title, book.author, book.publisher, book.publishedDate, book.description];
   const presentCount = fields.filter((field) => field.trim().length > 0).length;
-  return weightedContribution("metadataQuality", presentCount / fields.length, 0.1, "書誌情報と説明文が推薦理由に使えます。");
+  return weightedContribution(
+    "metadataQuality",
+    presentCount / fields.length,
+    0.1,
+    "書誌情報と説明文が推薦理由に使えます。"
+  );
 }
 
 function normalizeSeriesText(value: string): string {
-  return value
-    .normalize("NFKC")
-    .replace(/\s+/g, " ")
-    .trim();
+  return value.normalize("NFKC").replace(/\s+/g, " ").trim();
 }
 
 function normalizeSeriesKey(value: string): string {
@@ -216,7 +218,12 @@ function seriesOrder(context: SeriesOrderContext | undefined): ScoreContribution
     return weightedContribution("seriesOrder", 1, 0.12, "同一シリーズ内で最も若い巻です。");
   }
 
-  return weightedContribution("seriesOrder", context.value, 0.12, "同一シリーズ内では前の巻を先に読む候補として扱います。");
+  return weightedContribution(
+    "seriesOrder",
+    context.value,
+    0.12,
+    "同一シリーズ内では前の巻を先に読む候補として扱います。"
+  );
 }
 
 function placeholderComponent(id: string, weight: number, explanation: string): ScoreContribution {
@@ -299,10 +306,7 @@ export function findEarlierSeriesCandidate(input: {
   return (
     input.candidates.find((candidate) => {
       const candidateContext = contexts.get(candidate.bookmeterUrl);
-      return (
-        candidateContext?.key === bookContext.key &&
-        candidateContext.order < bookContext.order
-      );
+      return candidateContext?.key === bookContext.key && candidateContext.order < bookContext.order;
     }) ?? null
   );
 }

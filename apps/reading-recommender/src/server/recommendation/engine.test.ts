@@ -213,6 +213,27 @@ describe("recommendation engine", () => {
     ]);
   });
 
+  it("returns null without changing the recommendation or recording a promotion for an unknown book", () => {
+    const appDb = openTestAppDb();
+    const books = [
+      stackedBook({ bookmeterUrl: "book-1", title: "主推薦", remoteRank: 3 }),
+      stackedBook({ bookmeterUrl: "book-2", title: "副推薦1", remoteRank: 2 }),
+      stackedBook({ bookmeterUrl: "book-3", title: "副推薦2", remoteRank: 1 })
+    ];
+
+    syncSourceBooks({ db: appDb.db, booksDbPath: "fixture", sourceBooks: books });
+    const settings = getSettings(appDb.db);
+    runRecommendation({ db: appDb.db, settings, reason: "initial" });
+    const before = getCurrentRecommendation({ db: appDb.db, relatedBooks: [] });
+    const result = promoteRecommendation({ db: appDb.db, settings, bookmeterUrl: "unknown-book" });
+    const after = getCurrentRecommendation({ db: appDb.db, relatedBooks: [] });
+
+    expect(before?.primary?.bookmeterUrl).toBe("book-1");
+    expect(result).toBeNull();
+    expect(after).toEqual(before);
+    expect(readRecommendationEvents(appDb.db, ["secondary_promoted"])).toEqual([]);
+  });
+
   it("does not mutate the active cycle when no random candidate remains", () => {
     const appDb = openTestAppDb();
     const books = [

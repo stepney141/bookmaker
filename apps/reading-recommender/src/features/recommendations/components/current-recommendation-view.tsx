@@ -2,9 +2,9 @@ import { useState } from "react";
 
 import { BookDetailDialog } from "@/components/book-detail-dialog";
 import { OpacLinks } from "@/components/opac-links";
-import { ApiRequestError } from "@/lib/api-client";
 import { isActivationKey } from "@/utils/is-activation-key";
 
+import { recommendationActionErrorMessage } from "../utils/recommendation-action-error-message";
 import { formatSlipDate, nextRecommendationDate } from "../utils/recommendation-slip";
 
 import { BookPanel } from "./book-panel";
@@ -36,11 +36,7 @@ export function CurrentRecommendationView(input: {
     try {
       await action();
     } catch (error) {
-      setActionError(
-        error instanceof ApiRequestError && error.code === "no_random_candidate"
-          ? "ほかに選べる本がありません。"
-          : "操作に失敗しました。少し時間をおいて再度お試しください。"
-      );
+      setActionError(recommendationActionErrorMessage(error));
     } finally {
       setActionPending(false);
     }
