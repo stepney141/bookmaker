@@ -93,7 +93,8 @@ export class Bookmaker {
         timeout: 2 * 60 * 1000,
         waitUntil: "domcontentloaded"
       }),
-      loginButtonHandle[0].click()
+      // 広告のオーバーレイがボタンを覆うことがあるため、座標ではなく DOM からクリックする
+      loginButtonHandle[0].evaluate((button) => (button as HTMLElement).click())
     ]);
 
     console.log("Login Completed!");
