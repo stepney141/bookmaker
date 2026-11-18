@@ -1,8 +1,8 @@
 isbn_or_asin,book_title,author,publisher,published_date,sophia_opac
 4814401620,APIハンズオンラーニング : 手を動かして学ぶAPIの設計と実装,LukaszDynowski MarcinDulak 苫篠早紀,オーム社,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD18621648
 4274234150,生成AIによるソフトウェア開発 : 設計からテスト，マネジメントまでをすべて変革するLLM活用の実践体系,情報処理学会 鷲崎弘宜 家村康佑 石川冬樹 鵜林尚請 蝦名拓也 小川秀人 川上真澄 ほか,オーム社,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD13761843
-4254123140,深層学習を理解する I : 教師あり学習とモデルの基礎,SimonJ.D.Prince 黒川利明,朝倉書店,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD20920492
-4254123159,深層学習を理解する II : 教師なし学習・強化学習・倫理,SimonJ.D.Prince 黒川利明,朝倉書店,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD20920539
+4254123140,深層学習を理解する. 1,"Prince,SimonJ.D.(SimonJeremyDamion),1972- ほか",朝倉書店,202610,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD20920492
+4254123159,深層学習を理解する. 2,"Prince,SimonJ.D.(SimonJeremyDamion),1972- ほか",朝倉書店,202610,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD20920539
 4040825616,魔術の古代世界 「古代ギリシア語魔術パピルス」を読む (角川新書),前野弘志,ＫＡＤＯＫＡＷＡ,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD20491523
 4814401787,ソフトウェアエンジニアリングの基礎 : コーダーからエンジニアになるための実践ガイド,"Nathaniel Schutta,Dan Vega,村上 列,Nathaniel Schutta 著・文・その他,Dan Vega 著・文・その他,村上 列 翻訳","オライリー・ジャパン,オーム社","Sat, 8 Aug 2026 18:56:00 +0900",https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD20920550
 4814400667,Real World HTTP : 歴史とコードに学ぶインターネットとウェブ技術,"渋川,よしき",オーム社,202404,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD06645081
@@ -30,7 +30,7 @@ isbn_or_asin,book_title,author,publisher,published_date,sophia_opac
 4898155952,舌の上の階級闘争　「イギリス」を料理する,コモナーズ・キッチン,リトルモア,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD08865125
 4814401272,高リスク分野のための機械学習 : 責任あるAI構築のための実践アプローチ,PatrickHall JamesCurtis ParulPandey 高江洲勲 伊東道明 ほか,オーム社,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD13555160
 4798187453,目指せメダリスト！Kaggle実験管理術 着実にコンペで成果を出すためのノウハウ (AI & TECHNOLOGY),髙橋正憲 篠田裕之,翔泳社,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD10898896
-4254235917,人体損傷工学 (自動車工学シリーズ ； 8),岩本正実,朝倉書店,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD13819025
+4254235917,人体損傷工学 8 (自動車工学シリーズ),"岩本,正実,1969- 豊田中央研究所",朝倉書店,202511,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD13819025
 4814401337,Effective Python 第3版 : Pythonプログラムを改良する125項目,BrettSlatkin 鈴木駿,,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD13586404
 4582860834,日本人のための台湾学入門 (平凡社新書),康凱爾,平凡社,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD12371606
 4153400467,幽霊の脳科学 (ハヤカワ新書),古谷博和,早川書房,,https://www.lib.sophia.ac.jp/opac/opac_openurl?ncid=BD12868036
